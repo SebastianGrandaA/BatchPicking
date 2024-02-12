@@ -1,5 +1,5 @@
 from domain.joint.vrp import VRP
-from domain.models.method import Method, measure_time
+from domain.models.method import Method, measure_consumption
 from domain.models.solutions import Batch
 
 
@@ -10,7 +10,7 @@ class Joint(Method):
     Return a list of batches, each one with a route.
     """
 
-    @measure_time
+    @measure_consumption
     def solve(self) -> list[Batch]:
         model = VRP(**self.__dict__)
 

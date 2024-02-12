@@ -1,41 +1,46 @@
 from logging import info
 
-from domain.models.method import Method, measure_time
+from domain.models.method import Method, measure_consumption
 from domain.models.solutions import Batch, Problem
 from domain.sequential.construction.partition import Clustering
 from domain.sequential.construction.tsp import TSPBase, TSPMultiCommodityFlow
 
+BASE_METHOD = "TSPBase"
+
 
 class Sequential(Method):
-    """
-    Cluster-first, route-second approach.
-    """
+    """Cluster-first, route-second approach."""
 
-    def build_initial_solution(self) -> list[Batch]:
-        """
-        Construction heuristic to build an initial solution.
-        """
-        batches = Clustering(**self.__dict__).solve()
-        info(f"{[str(batch) for batch in batches]}")
+    @measure_consumption
+    def solve(self, routing_method: str = BASE_METHOD) -> list[Batch]:
+        initial_solution = Construction(**self.__dict__).solve(routing_method)
+        improved_solution = LocalSearch(**self.__dict__).solve(initial_solution)
 
-        routing_method = TSPBase(**self.__dict__)
-        # TODO probar con TSPMultiCommodityFlow
-
-        routes = routing_method.solve(batches=batches)
-        info(f"{[str(route) for route in routes]}")
-
-        return routes
-
-    @measure_time
-    def solve(self) -> list[Batch]:
-        initial = self.build_initial_solution()
-        # TODO implement local search
-        return initial
+        return improved_solution
 
 
 class Construction(Problem):
-    pass
+    """Construction heuristic interface to build an initial solution."""
+
+    def solve(self, routing_method: str) -> list[Batch]:
+        batches = Clustering(**self.__dict__).solve()
+        info(f"Construction | Batches | {[str(batch) for batch in batches]}")
+
+        if routing_method == "TSPMultiCommodityFlow":
+            routing_model = TSPMultiCommodityFlow(**self.__dict__)
+        elif routing_method == "TSPBase":
+            routing_model = TSPBase(**self.__dict__)
+        else:
+            raise ValueError(f"Unknown routing method {routing_method}")
+
+        routes = routing_model.solve(batches=batches)
+        info(f"Construction | Routes | {[str(route) for route in routes]}")
+
+        return routes
 
 
 class LocalSearch(Problem):
-    pass
+    """Local search interface to improve the initial solution."""
+
+    def solve(self, batches: list[Batch]) -> list[Batch]:
+        return batches

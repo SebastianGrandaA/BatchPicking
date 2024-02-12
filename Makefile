@@ -14,6 +14,11 @@ experiment:
 describe:
 	python src -u describe -m joint
 
+test:
+	make optimize
+	make experiment
+	make describe
+
 pre-process:
 	python scripts/duplicate_files.py
 
