@@ -1,5 +1,6 @@
 start:
 	conda activate BatchPicking
+	ulimit -s unlimited
 
 init:
 	conda create -n BatchPicking python=3.10
