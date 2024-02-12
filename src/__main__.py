@@ -22,6 +22,7 @@ if __name__ == "__main__":
 
     The experiment use case is used to solve multiple instances and compare the results. For example:
         python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 3600 -l INFO
+        python src -u experiment -m joint -ns all -t 3600 -l INFO
     """
     parser = ArgumentParser(description="BatchPicking")
     parser.add_argument(
@@ -74,11 +75,20 @@ if __name__ == "__main__":
 
     elif args.use_case == "experiment":
         if args.instance_names == "all":
+            instances = []
+
             for warehouse in dir_list("data"):
+                if warehouse == "-":
+                    continue
+
                 for subfolder in dir_list(warehouse):
-                    run_experiment(args.method, subfolder, args.timeout)
+                    name = subfolder.split("/")[1:]
+                    instances.append("/".join(name))
 
         else:
-            run_experiment(args.method, args.instance_names.split(","), args.timeout)
+            instances = args.instance_names.split(",")
+
+        run_experiment(args.method, instances, args.timeout)
+
     else:
         raise ValueError(f"Invalid use case: {args.use_case}")
