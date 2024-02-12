@@ -134,7 +134,7 @@ class Solution(IO):
         """Return a DataFrame with the stats of the solution."""
         input_path = path.join(
             self.directory,
-            'data.nosync',
+            'data',
             self.instance_name,
         )
         solution_file = path.join(

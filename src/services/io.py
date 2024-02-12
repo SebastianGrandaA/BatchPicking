@@ -18,7 +18,7 @@ class Reader(IO):
         """Read the content of the file."""
         dir = path.join(
             self.directory,
-            'data.nosync',
+            'data',
             self.instance_name,
             f'{filename}.txt'
         )

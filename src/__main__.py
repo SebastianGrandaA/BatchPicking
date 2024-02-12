@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     Experiment use case:
         python src -u experiment -m joint -ns examples/toy_instance -t 1500
-        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-01-30_12,warehouse_B/data_2023-01-30_12,warehouse_C/data_2023-01-30_12,warehouse_D/data_2023-01-30_12
+        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 1500
     """
     parser = ArgumentParser(description='BatchPicking')
     parser.add_argument('-u', '--use_case', type=str, help='Use case', required=True, choices=['optimize', 'experiment'])

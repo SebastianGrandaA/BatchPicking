@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # instance_names = ['warehouse_A', 'warehouse_B', 'warehouse_C', 'warehouse_D']
 
     for instance_name in instance_names:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data.nosync', instance_name)
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', instance_name)
         process(path, file_names)
         print(f"Processed {instance_name}")
 
