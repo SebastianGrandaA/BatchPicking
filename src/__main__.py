@@ -1,5 +1,13 @@
 from argparse import ArgumentParser
-from logging import DEBUG, INFO, WARNING, basicConfig, getLogger
+from logging import (
+    DEBUG,
+    INFO,
+    WARNING,
+    Formatter,
+    StreamHandler,
+    basicConfig,
+    getLogger,
+)
 from os import scandir
 from typing import Any
 
@@ -55,6 +63,10 @@ def initialize() -> Any:
 
     getLogger("matplotlib").setLevel(WARNING)
     basicConfig(level=log_level)
+    stream = StreamHandler()
+    formatter = Formatter("[%(asctime)s] %(levelname)s : %(message)s", datefmt="%H:%M")
+    stream.setFormatter(formatter)
+    getLogger().handlers[0].setFormatter(formatter)
 
     return args
 
@@ -99,8 +111,9 @@ if __name__ == "__main__":
         python src -u optimize -m joint -n examples/toy_instance -t 1500
 
     The experiment use case is used to solve multiple instances and compare the results. For example:
-        python src -u experiment -m joint -ns all -t 3600 -l INFO
-        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 3600 -l INFO
+        python src -u experiment -m joint -ns all -t 1800 -l INFO
+        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 1800 -l INFO
+        python src -u experiment -m joint -ns warehouse_A/data_2023-05-23,warehouse_A/data_2023-05-24,warehouse_A/data_2023-05-25,warehouse_A/data_2023-05-26,warehouse_A/data_2023-05-27 -t 1800 -l INFO
 
     The describe use case is used to analyze the results of the optimization process. For example:
         python src -u describe -m joint

@@ -6,10 +6,10 @@ format:
 	black src
 
 optimize:
-	python src -u optimize -m joint -n examples/toy_instance -t 1500
+	python src -u optimize -m joint -n examples/toy_instance -t 1800
 
 experiment:
-	python src -u experiment -m joint -ns examples/toy_instance -t 1500
+	python src -u experiment -m joint -ns examples/toy_instance -t 1800
 
 describe:
 	python src -u describe -m joint

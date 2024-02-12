@@ -57,7 +57,7 @@ def evaluate(
     baseCost = computeBaseSupportCosts(supports, adjMatrix)
     solutionCost = computeBatchCosts(batches, adjMatrix)
     gain = round(100 * (baseCost - solutionCost) / baseCost, 2)
-    instance_name = problemFolder.split("/")[-1]
+    instance_name = "/".join(problemFolder.split("/")[-2:])
     info(
         f"Instance {instance_name} | Solution is feasible | Base cost {baseCost} | Objective cost {solutionCost} | Improvement {gain}%"
     )

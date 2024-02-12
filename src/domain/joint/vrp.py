@@ -49,7 +49,7 @@ class VRP(Routing):
     This implementation is a proof of concept and does not focus on performance.
     """
 
-    manager: Any = None  # TODO dar un tipo
+    manager: Any = None
     routing: Any = None
     parameters: Any = None
     callbacks: Callbacks = Callbacks()
@@ -109,8 +109,8 @@ class VRP(Routing):
     def groups(self) -> list[list[int]]:
         """
         Group the items (nodes) by orders. The last item in each group is the dummy node. The depots are single-item groups.
-        For example, if there are 4 orders and 10 items, [0, 11] represent the depots, and [12, 13, 14, 15] represent the dummy nodes, then:
-            groups = [[0], [1, 2, 3, 12], [4, 5, 13], [6, 7, 14], [8, 9, 15], [11]]
+        For example, if there are 4 orders and 10 items, [0, 11] represent the depots, and [12, 13, 14, 15] represent the dummy nodes,
+        then: groups = [[1, 2, 3, 12], [4, 5, 13], [6, 7, 14], [8, 9, 15]]. The depots are excluded from the groups.
         """
         groups, group = [], []
 
@@ -180,10 +180,7 @@ class VRP(Routing):
         self.graph = {idx: item for idx, item in enumerate(nodes)}
 
     def build_matrix(self) -> np.ndarray:
-        """
-        Return the distance matrix between all nodes.
-        # TODO no deberiamos hacer que la distancia del dummy a los items del mismo pedido sea 0 y que a otros pedidos sea inf??
-        """
+        """Return the distance matrix between all nodes."""
         return np.array(
             [
                 [
@@ -204,22 +201,19 @@ class VRP(Routing):
         self.parameters = pywrapcp.DefaultRoutingSearchParameters()
         self.parameters.first_solution_strategy = (
             routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-            # routing_enums_pb2.FirstSolutionStrategy.AUTOMATIC
         )
         self.parameters.local_search_metaheuristic = (
-            # routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
             routing_enums_pb2.LocalSearchMetaheuristic.AUTOMATIC
         )
         self.parameters.time_limit.FromSeconds(self.timeout)
-        self.routing.CloseModelWithParameters(
-            self.parameters
-        )  # due to the initial solution
+        self.routing.CloseModelWithParameters(self.parameters)
 
     def get_initial_solution(self) -> Any:
         """
-        Get the S-shaped path to visit the items of each order individually.
-        The solution is encoded by the node indices the positions belong to.
-        Reference: https://developers.google.com/optimization/routing/routing_tasks#setting_initial_routes_for_a_search
+        Retrieve the S-shaped path to visit the items of each order individually.
+        This solution is encoded by the node indices of the positions belong to.
+
+        [Reference](https://developers.google.com/optimization/routing/routing_tasks#setting_initial_routes_for_a_search).
         """
         grouped_nodes = [
             [self.get_node_idx(item) for item in group]
@@ -278,9 +272,7 @@ class VRP(Routing):
     # -------------------
 
     def minimize_total_distance(self) -> None:
-        """
-        The objective function is to minimize the total distance traveled by the pickers.
-        """
+        """Minimize the total distance traveled by the pickers."""
         distances = self.build_matrix()
 
         def distance_callback(from_index, to_index):
@@ -301,12 +293,11 @@ class VRP(Routing):
 
     def unit_capacity_constraints(self) -> None:
         """
-        Set the capacity constraints for the vehicles. The capacity is the number of orders.
-            To limit the quantity of orders, we create a dummy node for each order and set the demand to 1.
-            Therefore, the capacity of the vehicle is the number of orders.
-            For the volume, it is similar since the we know the volume of the whole order and not each item individually.
+        Set the capacity constraints for the vehicles.
+        The capacity is the quantity of orders the vehicle can pick in a route.
+        A dummy node for each order is introduced with a demand of 1, whereas the item nodes have a demand of 0.
 
-        Reference: https://developers.google.com/optimization/routing/cvrp
+        [Reference](https://developers.google.com/optimization/routing/cvrp).
         """
 
         def demand_callback(from_index):
@@ -331,7 +322,8 @@ class VRP(Routing):
 
     def volume_capacity_constraints(self) -> None:
         """
-        Set the volume capacity constraints for the vehicles. The capacity is the volume of the orders.
+        Set the volume capacity constraints for the vehicles.
+        Similar to the unit capacity constraints, but the volume of an order is the total volume of all the items.
         """
 
         def volume_callback(from_index):
@@ -357,11 +349,10 @@ class VRP(Routing):
     def pickup_delivery_constraints(self) -> None:
         """
         Set the pick-up and delivery constraints for the vehicles.
-            All the positions (items) for an order must be visited in the same batch route.
-            Therefore, we consider that the items are pick-up positions and the dummy nodes are delivery positions.
-            TODO esto permitiria unloading en medio de la ruta? Es decir que puede que exceda la capacidad al final pero no en cada punto.
+        All the positions (items) for an order must be visited in the same batch route.
+        Therefore, we consider that the items are pick-up positions and the dummy nodes are delivery positions.
 
-        Reference: https://developers.google.com/optimization/routing/pickup_delivery
+        [Reference](https://developers.google.com/optimization/routing/pickup_delivery).
         """
         grouped_items = self.groups[1:-1]  # exclude the depots
         assert len(grouped_items) == self.nb_vehicles
@@ -385,8 +376,9 @@ class VRP(Routing):
     def build_model(self) -> None:
         """
         Build the model for the Capacitated VRP with pick-up and delivery.
-        Mutiple depot feature to model the start and end of the route.
-        Source: https://developers.google.com/optimization/routing/routing_tasks#setting-start-and-end-locations-for-routes
+        Multiple depots are considered to model the start and end of the routes.
+
+        [Reference](https://developers.google.com/optimization/routing/routing_tasks#setting-start-and-end-locations-for-routes)
         """
         self.build_graph()
         self.manager = pywrapcp.RoutingIndexManager(
@@ -411,7 +403,7 @@ class VRP(Routing):
         self.build_model()
         self.set_parameters()
         info(
-            f"VRP | Warehouse {self.warehouse.name} |  Start (idx-id) {(self.start_node_idx, self.start_node_id)} | End (idx-id) {(self.end_node_idx, self.end_node_id)} | Vehicle {self.nb_vehicles} | Graph {len(self.graph)}"
+            f"VRP | Warehouse {self.warehouse.name} |  Start {(self.start_node_idx, self.start_node_id)} | End {(self.end_node_idx, self.end_node_id)} | Vehicle {self.nb_vehicles} | Graph {len(self.graph)}"
         )
 
         initial_solution = self.get_initial_solution()

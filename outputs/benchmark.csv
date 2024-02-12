@@ -1,6 +1,8 @@
 instance_name,is_feasible,base_cost,objective_cost,improvement
-toy_instance,True,1667.0,716.0,57.05
-toy_instance,True,1667.0,716.0,57.05
-toy_instance,True,1667.0,716.0,57.05
-toy_instance,True,1667.0,716.0,57.05
-toy_instance,True,1667.0,716.0,57.05
+examples/toy_instance,True,1667.0,716.0,57.05
+warehouse_A/data_2023-05-22,True,2334211.0,1439929.0,38.31
+warehouse_A/data_2023-05-23,True,1912340.0,1161404.0,39.27
+warehouse_A/data_2023-05-24,True,2235426.0,1457477.0,34.8
+warehouse_A/data_2023-05-25,True,2024208.0,1376378.0,32.0
+warehouse_A/data_2023-05-26,True,3125541.0,2198868.0,29.65
+warehouse_A/data_2023-05-27,True,2261211.0,1449056.0,35.92
