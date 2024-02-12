@@ -1,4 +1,6 @@
-from domain.BatchPicking import run
+from domain.BatchPicking import optimize
+
 
 def run_optimize(method: str, instance_name: str, timeout: int) -> None:
-    run(method, instance_name, timeout)
+    """Interface to execute the optimization use case."""
+    optimize(method, instance_name, timeout)

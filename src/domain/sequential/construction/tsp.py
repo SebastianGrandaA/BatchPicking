@@ -1,11 +1,12 @@
-from domain.models.routing import Routing
-import pyomo.environ as pyo
 from collections import defaultdict
-
-from gurobipy import GRB, Model, quicksum
 from itertools import combinations
 from logging import error
 from typing import Any
+
+import pyomo.environ as pyo
+from gurobipy import GRB, Model, quicksum
+
+from domain.models.routing import Routing
 from domain.models.solutions import Batch, Route
 
 
@@ -19,52 +20,58 @@ class TSPMultiCommodityFlow(Routing):
 
         return sum(
             matrix[batch.items[i].id, batch.items[j].id]
-                if i <= batch.depot_ids[1] and j <= batch.depot_ids[1]
-                else 0
-            * model.x[i, j]
+            if i <= batch.depot_ids[1] and j <= batch.depot_ids[1]
+            else 0 * model.x[i, j]
             for (i, j) in model.edges
         )
-    
+
     def entry_constraint(self, model: pyo.ConcreteModel, i: int):
         return sum(model.x[i, j] for j in model.nodes if i != j) == 1
-    
+
     def exit_constraint(self, model: pyo.ConcreteModel, j: int):
         return sum(model.x[i, j] for i in model.nodes if i != j) == 1
-    
+
     def flow_constraint(self, batch: Batch, model: pyo.ConcreteModel, l: int):
         return (
             sum(model.z[0, j, l] for j in model.positions if j not in batch.depot_ids)
-            - sum(model.z[j, 0, l] for j in model.positions if j not in batch.depot_ids) == -1
+            - sum(model.z[j, 0, l] for j in model.positions if j not in batch.depot_ids)
+            == -1
         )
-    
-    def one_commodity_per_vertex_constraint(self, batch: Batch, model: pyo.ConcreteModel, i: int):
+
+    def one_commodity_per_vertex_constraint(
+        self, batch: Batch, model: pyo.ConcreteModel, i: int
+    ):
         if i >= batch.depot_ids[1]:
             return pyo.Constraint.Skip
-        
+
         return (
             sum(model.z[i, j, i] for j in model.nodes if j not in batch.depot_ids)
-            - sum(model.z[j, i, i] for j in model.nodes if j not in batch.depot_ids) == 1
+            - sum(model.z[j, i, i] for j in model.nodes if j not in batch.depot_ids)
+            == 1
         )
-    
+
     def flow_conservation_constraint(self, model: pyo.ConcreteModel, i: int, l: int):
         if i == l:
             return pyo.Constraint.Skip
 
         return (
             sum(model.z[i, j, l] for j in model.nodes)
-            - sum(model.z[j, i, l] for j in model.nodes) == 0
+            - sum(model.z[j, i, l] for j in model.nodes)
+            == 0
         )
-    
+
     def flow_arc_constraint(self, model: pyo.ConcreteModel, i: int, j: int, l: int):
         return model.z[i, j, l] <= model.x[i, j]
-    
+
     def build_model(self, batch: Batch):
         model = pyo.ConcreteModel()
 
         # Parameters
         model.positions = pyo.Set(initialize=range(len(batch.items)))
         model.nodes = pyo.Set(initialize=range(len(batch.items) + 2))
-        model.edges = pyo.Set(initialize=[(i, j) for i in model.nodes for j in model.nodes if i != j])
+        model.edges = pyo.Set(
+            initialize=[(i, j) for i in model.nodes for j in model.nodes if i != j]
+        )
 
         # Variables
         model.x = pyo.Var(model.edges, domain=pyo.Binary)
@@ -77,20 +84,27 @@ class TSPMultiCommodityFlow(Routing):
         model.entry = pyo.Constraint(model.nodes, rule=self.entry_constraint)
         model.exit = pyo.Constraint(model.nodes, rule=self.exit_constraint)
         model.flow = pyo.Constraint(model.positions, rule=self.flow_constraint)
-        model.one_commodity_per_vertex = pyo.Constraint(model.positions, rule=self.one_commodity_per_vertex_constraint)
-        model.flow_conservation = pyo.Constraint(model.positions, model.positions, rule=self.flow_conservation_constraint)
-        model.flow_arc = pyo.Constraint(model.edges, model.positions, rule=self.flow_arc_constraint)
+        model.one_commodity_per_vertex = pyo.Constraint(
+            model.positions, rule=self.one_commodity_per_vertex_constraint
+        )
+        model.flow_conservation = pyo.Constraint(
+            model.positions, model.positions, rule=self.flow_conservation_constraint
+        )
+        model.flow_arc = pyo.Constraint(
+            model.edges, model.positions, rule=self.flow_arc_constraint
+        )
 
         return model
-    
+
     def build_solution(self, solution):
         return solution
+
 
 class TSPBase(Routing):
     """
     Inspired by the Gurobi [example](https://www.gurobi.com/jupyter_models/traveling-salesman/)
     """
-    
+
     def build_graph(self, batch: Batch) -> None:
         items = batch.items
         depots = batch.depots
@@ -111,8 +125,7 @@ class TSPBase(Routing):
         }
         # return all distances that are in combinations of the items
         return {
-            (i, j): all_distances[(i, j)]
-            for i, j in combinations(self.node_ids, 2)
+            (i, j): all_distances[(i, j)] for i, j in combinations(self.node_ids, 2)
         }
 
     def shortest_tour(self, edges: list[tuple[int, int]]) -> list[int]:
@@ -141,7 +154,7 @@ class TSPBase(Routing):
         assert shortest is not None
 
         return shortest
-    
+
     def selected_edges(self, solution: Any) -> list[tuple[int, int]]:
         return [(i, j) for (i, j), v in solution.items() if v > 0.5]
 
@@ -154,9 +167,8 @@ class TSPBase(Routing):
 
                 if len(tour) < len(self.node_ids):
                     model.cbLazy(
-                        quicksum(
-                            model._vars[i, j] for i, j in combinations(tour, 2)
-                        ) <= len(tour) - 1
+                        quicksum(model._vars[i, j] for i, j in combinations(tour, 2))
+                        <= len(tour) - 1
                     )
 
             except Exception as e:
@@ -169,15 +181,9 @@ class TSPBase(Routing):
 
         assert len(tour) == len(self.node_ids)
 
-        route = Route(
-            sequence=[self.graph[i] for i in tour],
-            distance=value
-        )
+        route = Route(sequence=[self.graph[i] for i in tour], distance=value)
 
-        return Batch(
-            orders=batch.orders,
-            route=route
-        )
+        return Batch(orders=batch.orders, route=route)
 
     def route(self, batch: Batch) -> Batch:
         model = Model()
@@ -186,26 +192,22 @@ class TSPBase(Routing):
 
         # Variables
         is_edge = model.addVars(
-            matrix.keys(),
-            obj=matrix,
-            vtype=GRB.BINARY,
-            name="is_edge"
+            matrix.keys(), obj=matrix, vtype=GRB.BINARY, name="is_edge"
         )
-        is_edge.update(
-            {(j, i): v for (i, j), v in is_edge.items()}
-        )
+        is_edge.update({(j, i): v for (i, j), v in is_edge.items()})
 
         # Constraints
         for i in self.node_ids:
             model.addConstr(
-                quicksum(is_edge[i, j] for j in self.node_ids if i != j) == 2
+                quicksum(is_edge[i, j] for j in self.node_ids if i != j)
+                == 2
                 # name="degree"
             )
-            
+
         # model.addConstrs(
-            # quicksum(is_edge[i, j] for j in self.node_ids if i != j) == 2,
-            # (is_edge.sum(i, '*') == 2 for i in self.node_ids),
-            # name="degree"
+        # quicksum(is_edge[i, j] for j in self.node_ids if i != j) == 2,
+        # (is_edge.sum(i, '*') == 2 for i in self.node_ids),
+        # name="degree"
         # )
         # model.addConstrs(
         #     (is_edge[i, j] == is_edge[j, i] for i, j in pairs),
@@ -215,8 +217,7 @@ class TSPBase(Routing):
         model.Params.lazyConstraints = 1
 
         model.optimize(lambda model, where: self.subtour_elimination(model, where))
-        value = 0 # model.objVal
+        value = 0  # model.objVal
         # TODO check this
- 
-        return self.build_solution(batch, is_edge, value)
 
+        return self.build_solution(batch, is_edge, value)

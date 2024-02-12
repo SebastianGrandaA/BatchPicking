@@ -24,6 +24,14 @@ Run the project:
 make run
 ```
 
+## Develop
+
+Before pushing a commit, ensure to format the code:
+
+```bash
+make format
+```
+
 ## Notes
 
 The provided data contains three files outside to their corresponding instance folders (`'adjacencyMatrix.txt', 'aisleSubdivision.txt', 'positionList.txt'`). Therefore, a pre-process is required to add those files to the instance folders. Edit the `src/services/scripts/duplicate_files.py` script and run:

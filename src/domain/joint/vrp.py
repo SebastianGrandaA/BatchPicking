@@ -1,12 +1,14 @@
 from logging import debug, error, info
 from typing import Any
+
+import numpy as np
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+
+from domain.models.instances import Item, Order
 from domain.models.method import Callbacks
 from domain.models.routing import Routing
-from domain.models.instances import Item, Order
 from domain.models.solutions import Batch, Metrics, Route
-from ortools.constraint_solver import pywrapcp
-from ortools.constraint_solver import routing_enums_pb2
-import numpy as np
+
 
 class VRP(Routing):
     """
@@ -46,16 +48,17 @@ class VRP(Routing):
     Aiming to improve the efficiency of the local search procedure, the S-shaped path (a.k.a. base solution) for each order is used as the initial solution.
     This implementation is a proof of concept and does not focus on performance.
     """
-    manager: Any = None # TODO dar un tipo
+
+    manager: Any = None  # TODO dar un tipo
     routing: Any = None
     parameters: Any = None
     callbacks: Callbacks = Callbacks()
     node_to_order: dict[int, int] = {}
-    
+
     @property
     def sorted_indices(self) -> list[int]:
         return sorted(self.graph.keys())
-    
+
     @property
     def sorted_nodes(self) -> list[Item]:
         return [self.graph[idx] for idx in self.sorted_indices]
@@ -71,11 +74,8 @@ class VRP(Routing):
         The demands of the nodes are used to set the unitary capacity constraints of a group of nodes (orders).
         Dummy nodes have a demand of 1, whereas the item nodes have a demand of 0.
         """
-        return [
-            int(node.is_dummy)
-            for node in self.sorted_nodes
-        ]
-    
+        return [int(node.is_dummy) for node in self.sorted_nodes]
+
     @property
     def volumes(self) -> list[int]:
         """
@@ -91,16 +91,16 @@ class VRP(Routing):
     def start_node_idx(self) -> int:
         """Start node is the first node in the graph."""
         return 0
-    
+
     @property
     def end_node_idx(self) -> int:
         """End node is the last node in the graph."""
         return len(self.graph) - 1
-    
+
     @property
     def start_node_id(self) -> int:
         return self.graph[self.start_node_idx].position_id
-    
+
     @property
     def end_node_id(self) -> int:
         return self.graph[self.end_node_idx].position_id
@@ -127,16 +127,16 @@ class VRP(Routing):
     def status(self) -> str:
         status = self.routing.status()
         map = {
-            0: 'Not solved',
-            1: 'Optimal',
-            2: 'Feasible',
-            3: 'No solution found',
-            4: 'Timeout',
-            5: 'Invalid',
-            6: 'Infeasible',
+            0: "Not solved",
+            1: "Optimal",
+            2: "Feasible",
+            3: "No solution found",
+            4: "Timeout",
+            5: "Invalid",
+            6: "Infeasible",
         }
 
-        return map.get(status, 'Unknown')
+        return map.get(status, "Unknown")
 
     def get_order(self, node: Item) -> Order:
         """Get the order of the node."""
@@ -167,8 +167,10 @@ class VRP(Routing):
 
             for i in vertices:
                 if i.id in self.node_to_order:
-                    raise ValueError(f'Order {order.id} | Node {i.id} is already in the graph')
-                
+                    raise ValueError(
+                        f"Order {order.id} | Node {i.id} is already in the graph"
+                    )
+
                 self.node_to_order[i.id] = order.id
 
             dummy_idx += 1
@@ -182,13 +184,17 @@ class VRP(Routing):
         Return the distance matrix between all nodes.
         # TODO no deberiamos hacer que la distancia del dummy a los items del mismo pedido sea 0 y que a otros pedidos sea inf??
         """
-        return np.array([
+        return np.array(
             [
-                self.warehouse.distance(i, j) if (not i.is_dummy and not j.is_dummy) else 0
-                for j in self.graph.values()
+                [
+                    self.warehouse.distance(i, j)
+                    if (not i.is_dummy and not j.is_dummy)
+                    else 0
+                    for j in self.graph.values()
+                ]
+                for i in self.graph.values()
             ]
-            for i in self.graph.values()
-        ])
+        )
 
     def set_parameters(self) -> None:
         """
@@ -205,7 +211,9 @@ class VRP(Routing):
             routing_enums_pb2.LocalSearchMetaheuristic.AUTOMATIC
         )
         self.parameters.time_limit.FromSeconds(self.timeout)
-        self.routing.CloseModelWithParameters(self.parameters) # due to the initial solution
+        self.routing.CloseModelWithParameters(
+            self.parameters
+        )  # due to the initial solution
 
     def get_initial_solution(self) -> Any:
         """
@@ -218,7 +226,7 @@ class VRP(Routing):
             for group in self.warehouse.base_solution
         ]
         initial_solution = self.routing.ReadAssignmentFromRoutes(grouped_nodes, True)
-        debug(f'VRP | Initial solution | Node indices {grouped_nodes}')
+        debug(f"VRP | Initial solution | Node indices {grouped_nodes}")
 
         return initial_solution
 
@@ -245,7 +253,7 @@ class VRP(Routing):
                 if is_unique(item, sequence):
                     sequence.append(item)
                     unit_load += demands[node_index]
-                    volume_load += volumes[node_index]    
+                    volume_load += volumes[node_index]
                     distance += self.routing.GetArcCostForVehicle(
                         previous_index, index, vehicle_id
                     )
@@ -255,26 +263,20 @@ class VRP(Routing):
                 sequence.append(item)
 
             route = Route(sequence=sequence)
-            orders = list(set(
-                self.get_order(node)
-                for node in route.sequence
-                if node.is_pickup
-            ))
+            orders = list(
+                set(self.get_order(node) for node in route.sequence if node.is_pickup)
+            )
             if not orders:
                 continue
 
-            metrics = Metrics(
-                distance=distance,
-                units=unit_load,
-                volume=volume_load
-            )
+            metrics = Metrics(distance=distance, units=unit_load, volume=volume_load)
             batches.append(Batch(orders=orders, route=route, metrics=metrics))
 
         return batches
 
     # Objective functions
     # -------------------
-    
+
     def minimize_total_distance(self) -> None:
         """
         The objective function is to minimize the total distance traveled by the pickers.
@@ -286,11 +288,13 @@ class VRP(Routing):
             to_node = self.manager.IndexToNode(to_index)
 
             return distances[from_node][to_node]
-        
-        self.callbacks.distance = self.routing.RegisterTransitCallback(distance_callback)
+
+        self.callbacks.distance = self.routing.RegisterTransitCallback(
+            distance_callback
+        )
         self.routing.SetArcCostEvaluatorOfAllVehicles(self.callbacks.distance)
 
-        debug(f'Minimize total distance | Distance sample: {distances[0]}')
+        debug(f"Minimize total distance | Distance sample: {distances[0]}")
 
     # Constraints
     # -----------
@@ -304,43 +308,51 @@ class VRP(Routing):
 
         Reference: https://developers.google.com/optimization/routing/cvrp
         """
+
         def demand_callback(from_index):
             """Returns the demand of the node."""
             from_node = self.manager.IndexToNode(from_index)
 
             return self.demands[from_node]
-        
-        self.callbacks.demand = self.routing.RegisterUnaryTransitCallback(demand_callback)
+
+        self.callbacks.demand = self.routing.RegisterUnaryTransitCallback(
+            demand_callback
+        )
         self.routing.AddDimensionWithVehicleCapacity(
             self.callbacks.demand,
             0,  # no capacity slack
-            [self.warehouse.vehicle.max_nb_orders] * self.nb_vehicles,  # vehicle maximum capacities
+            [self.warehouse.vehicle.max_nb_orders]
+            * self.nb_vehicles,  # vehicle maximum capacities
             True,  # start cumul to zero
-            'UnitCapacity'
+            "UnitCapacity",
         )
 
-        debug(f'Unit capacity constraints | Demands: {self.demands}')
+        debug(f"Unit capacity constraints | Demands: {self.demands}")
 
     def volume_capacity_constraints(self) -> None:
         """
         Set the volume capacity constraints for the vehicles. The capacity is the volume of the orders.
         """
+
         def volume_callback(from_index):
             """Returns the volume of the node."""
             from_node = self.manager.IndexToNode(from_index)
 
             return self.volumes[from_node]
-        
-        self.callbacks.volume = self.routing.RegisterUnaryTransitCallback(volume_callback)
+
+        self.callbacks.volume = self.routing.RegisterUnaryTransitCallback(
+            volume_callback
+        )
         self.routing.AddDimensionWithVehicleCapacity(
             self.callbacks.volume,
             0,  # no capacity slack
-            [self.warehouse.vehicle.max_volume] * self.nb_vehicles,  # vehicle maximum capacities
+            [self.warehouse.vehicle.max_volume]
+            * self.nb_vehicles,  # vehicle maximum capacities
             True,  # start cumul to zero
-            'VolumeCapacity'
+            "VolumeCapacity",
         )
 
-        debug(f'Volume capacity constraints | Volumes: {self.volumes}')
+        debug(f"Volume capacity constraints | Volumes: {self.volumes}")
 
     def pickup_delivery_constraints(self) -> None:
         """
@@ -351,7 +363,7 @@ class VRP(Routing):
 
         Reference: https://developers.google.com/optimization/routing/pickup_delivery
         """
-        grouped_items = self.groups[1:-1] # exclude the depots
+        grouped_items = self.groups[1:-1]  # exclude the depots
         assert len(grouped_items) == self.nb_vehicles
 
         for group in grouped_items:
@@ -361,14 +373,15 @@ class VRP(Routing):
             for pickup_idx in pickup_indices:
                 self.routing.AddPickupAndDelivery(pickup_idx, delivery_idx)
                 self.routing.solver().Add(
-                    self.routing.VehicleVar(pickup_idx) == self.routing.VehicleVar(delivery_idx)
+                    self.routing.VehicleVar(pickup_idx)
+                    == self.routing.VehicleVar(delivery_idx)
                 )
 
-        debug(f'Pickup and delivery constraints | Items: {grouped_items}')
+        debug(f"Pickup and delivery constraints | Items: {grouped_items}")
 
     # Model
     # -----
-        
+
     def build_model(self) -> None:
         """
         Build the model for the Capacitated VRP with pick-up and delivery.
@@ -377,10 +390,10 @@ class VRP(Routing):
         """
         self.build_graph()
         self.manager = pywrapcp.RoutingIndexManager(
-            len(self.graph), # number of nodes
-            self.nb_vehicles, # number of vehicles
-            [self.start_node_idx] * self.nb_vehicles, # start nodes
-            [self.end_node_idx] * self.nb_vehicles # end nodes
+            len(self.graph),  # number of nodes
+            self.nb_vehicles,  # number of vehicles
+            [self.start_node_idx] * self.nb_vehicles,  # start nodes
+            [self.end_node_idx] * self.nb_vehicles,  # end nodes
         )
         self.routing = pywrapcp.RoutingModel(self.manager)
 
@@ -397,7 +410,9 @@ class VRP(Routing):
         """
         self.build_model()
         self.set_parameters()
-        debug(f'VRP | Start node (idx-id): {(self.start_node_idx, self.start_node_id)} | End node (idx-id): {(self.end_node_idx, self.end_node_id)} | Vehicles: {self.nb_vehicles} | Graph: {len(self.graph)}')
+        debug(
+            f"VRP | Start node (idx-id): {(self.start_node_idx, self.start_node_id)} | End node (idx-id): {(self.end_node_idx, self.end_node_id)} | Vehicles: {self.nb_vehicles} | Graph: {len(self.graph)}"
+        )
 
         initial_solution = self.get_initial_solution()
         solution = self.routing.SolveFromAssignmentWithParameters(
@@ -405,9 +420,9 @@ class VRP(Routing):
         )
 
         if solution and self.is_valid:
-            info(f'VRP | Solution obtained | Status: {self.status}')
+            info(f"VRP | Solution obtained | Status: {self.status}")
 
             return self.build_solution(solution)
-        
+
         else:
             error("No solution found")

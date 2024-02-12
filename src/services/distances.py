@@ -1,12 +1,13 @@
-from domain.models.instances import Order
 import numpy as np
 from scipy.spatial.distance import directed_hausdorff
+
+from domain.models.instances import Order
 
 
 class Hausdorff:
     def get_coordinates(self, order: Order) -> list[tuple[float, float]]:
         return [item.coordinates for item in order.items]
-    
+
     def closeness(self, order_1: Order, order_2: Order) -> float:
         """
         Symmetric Hausdorff distance between two orders, which is the maximum of the directed distances.
@@ -16,7 +17,7 @@ class Hausdorff:
         """
         if order_1 == order_2:
             return 0
-        
+
         positions_1 = self.get_coordinates(order_1)
         positions_2 = self.get_coordinates(order_2)
 
@@ -35,5 +36,5 @@ class Hausdorff:
             for j, order_j in enumerate(orders):
                 if i != j:
                     matrix[i, j] = self.closeness(order_i, order_j)
-        
+
         return matrix

@@ -1,6 +1,10 @@
 up:
 	conda activate BatchPicking
 
+format:
+	isort src
+	black src
+
 optimize:
 	python src -u optimize -m joint -n examples/toy_instance -t 1500
 

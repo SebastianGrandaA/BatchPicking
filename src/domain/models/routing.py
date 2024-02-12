@@ -1,18 +1,21 @@
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any
+
 from domain.models.instances import Item
 from domain.models.solutions import Batch, Problem
+
 
 class Routing(Problem):
     """
     Interface for routing problems.
     """
+
     graph: dict[int, Item] = {}
 
     @property
     def nodes(self) -> list[Item]:
         return list(self.graph.values())
-    
+
     @property
     def node_ids(self) -> list[int]:
         return list(self.graph.keys())
@@ -23,11 +26,11 @@ class Routing(Problem):
 
     @property
     def is_valid(self) -> bool:
-        return self.status in ['Optimal', 'Feasible']
+        return self.status in ["Optimal", "Feasible"]
 
     def route(self, *args, **kwargs) -> Any:
         raise NotImplementedError
-        
+
     def build_graph(self) -> Any:
         raise NotImplementedError
 
@@ -52,10 +55,7 @@ class Routing(Problem):
         routes = []
 
         with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self.route(batch=batch))
-                for batch in batches
-            ]
+            futures = [executor.submit(self.route(batch=batch)) for batch in batches]
 
             for future in futures:
                 routes.append(future.result())
@@ -80,6 +80,6 @@ class Routing(Problem):
             routes.append(self.route(batch=batch))
 
         return routes
-    
+
     def build_model(self, batches: list[Batch]):
         return self.solve(batches=batches)
