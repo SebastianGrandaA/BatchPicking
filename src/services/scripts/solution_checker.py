@@ -64,7 +64,7 @@ def evaluate(
 
     return {
         "instance_name": instance_name,
-        "is_feasible": True,
+        "is_feasible": True,  # if reached this point, the solution is feasible
         "base_cost": baseCost,
         "objective_cost": solutionCost,
         "improvement": gain,

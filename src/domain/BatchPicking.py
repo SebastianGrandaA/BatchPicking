@@ -29,13 +29,14 @@ def optimize(method: str, instance_name: str, timeout: int) -> None:
             raise ValueError("Invalid instance")
 
         debug(f"BatchPicking | Start optimization | {str(warehouse)}")
-        routes = dispatch(method, warehouse=warehouse, timeout=timeout).solve()
+        solver = dispatch(method, warehouse=warehouse, timeout=timeout)
+        routes, time = solver.solve()
         solution = Solution(
             instance_name=instance_name,
             batches=routes,
         )
         info(f"BatchPicking | Finish optimization | {str(solution)}")
-        solution.save()
+        solution.save(time)
 
     except Exception as err:
         error(f"BatchPicking | Error optimization | {str(err)}")

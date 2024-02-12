@@ -144,7 +144,7 @@ class Solution(IO):
             batch.to_txt(id=str(idx)) for idx, batch in enumerate(self.batches)
         )
 
-    def get_stats(self) -> DataFrame:
+    def get_stats(self, execution_time: float) -> DataFrame:
         """Return a DataFrame with the stats of the solution."""
         input_path = path.join(
             self.directory,
@@ -159,10 +159,11 @@ class Solution(IO):
         )
 
         stats = evaluate(input_path, solution_file)
+        stats["execution_time"] = execution_time
 
         return DataFrame(stats, index=[0])
 
-    def save(self):
+    def save(self, time: float) -> None:
         """Save the solution in a text file and the map of each batch."""
         dir = path.join(
             self.directory,
@@ -183,13 +184,14 @@ class Solution(IO):
 
         # Save the stats of the solution
         benchmark_file = path.join(dir, "..", "..", "benchmark.csv")
+        statistics = self.get_stats(time)
 
         if path.exists(benchmark_file):
             file = read_csv(benchmark_file)
-            file = concat([file, self.get_stats()], ignore_index=True)
+            file = concat([file, statistics], ignore_index=True)
 
         else:
-            file = self.get_stats()
+            file = statistics
 
         file.to_csv(benchmark_file, index=False)
 

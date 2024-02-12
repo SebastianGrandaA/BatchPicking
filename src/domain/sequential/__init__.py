@@ -1,6 +1,6 @@
 from logging import info
 
-from domain.models.method import Method
+from domain.models.method import Method, measure_time
 from domain.models.solutions import Batch, Problem
 from domain.sequential.construction.partition import Clustering
 from domain.sequential.construction.tsp import TSPBase, TSPMultiCommodityFlow
@@ -26,6 +26,7 @@ class Sequential(Method):
 
         return routes
 
+    @measure_time
     def solve(self) -> list[Batch]:
         initial = self.build_initial_solution()
         # TODO implement local search
