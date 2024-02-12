@@ -103,20 +103,6 @@ def dispatch(args: Any) -> None:
 
 
 if __name__ == "__main__":
-    """
-    Entry point for the application.
-    It supports three use cases: optimize, experiment, and describe.
-
-    The optimize use case is used to solve a single instance. For example:
-        python src -u optimize -m joint -n examples/toy_instance -t 1500
-
-    The experiment use case is used to solve multiple instances and compare the results. For example:
-        python src -u experiment -m joint -ns all -t 1800 -l INFO
-        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 1800 -l INFO
-        python src -u experiment -m joint -ns warehouse_A/data_2023-05-23,warehouse_A/data_2023-05-24,warehouse_A/data_2023-05-25,warehouse_A/data_2023-05-26,warehouse_A/data_2023-05-27 -t 1800 -l INFO
-
-    The describe use case is used to analyze the results of the optimization process. For example:
-        python src -u describe -m joint
-    """
+    """Entry point for the application."""
     args = initialize()
     dispatch(args)
