@@ -23,3 +23,11 @@ Run the project:
 ```bash
 make run
 ```
+
+## Notes
+
+The provided data contains three files outside to their corresponding instance folders (`'adjacencyMatrix.txt', 'aisleSubdivision.txt', 'positionList.txt'`). Therefore, a pre-process is required to add those files to the instance folders. Edit the `src/services/scripts/duplicate_files.py` script and run:
+
+```bash
+make pre-process
+```

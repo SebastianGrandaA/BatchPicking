@@ -1,7 +1,6 @@
+from domain.models.instances import Order
 import numpy as np
 from scipy.spatial.distance import directed_hausdorff
-
-from .instances import Order
 
 
 class Hausdorff:
@@ -15,7 +14,7 @@ class Hausdorff:
 
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.directed_hausdorff.html
         """
-        if order_1.id == order_2.id:
+        if order_1 == order_2:
             return 0
         
         positions_1 = self.get_coordinates(order_1)
