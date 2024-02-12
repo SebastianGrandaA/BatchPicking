@@ -39,13 +39,17 @@ class Benchmark(IO):
             .reset_index()
         )
         stats.columns = ["Statistic", "Value"]
-        filename = path.join(self.output_dir, "stats.csv")
+        filename = path.join(self.output_dir, "improvement_stats.csv")
         stats.to_csv(filename, index=False)
 
     def save_boxplot(self) -> None:
         """Save the boxplot of the benchmark."""
+        self.results["warehouse_name"] = (
+            self.results["instance_name"].str.split("/").str[-2]
+        )
+
         plt.figure(figsize=(10, 6))
-        sns.boxplot(x="instance_name", y="improvement", data=self.results)
+        sns.boxplot(x="warehouse_name", y="improvement", data=self.results)
         plt.title("Improvement by Warehouse")
         plt.xlabel("Warehouse Name")
         plt.ylabel("Improvement")

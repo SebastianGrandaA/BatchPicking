@@ -35,7 +35,7 @@ def optimize(method: str, instance_name: str, timeout: int) -> None:
             instance_name=instance_name,
             batches=routes,
         )
-        info(f"BatchPicking | Finish optimization | {str(solution)}")
+        info(f"BatchPicking | Finished in {time} seconds | {str(solution)}")
         solution.save(time)
 
     except Exception as err:
