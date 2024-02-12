@@ -1,29 +1,15 @@
 from argparse import ArgumentParser
 from logging import DEBUG, INFO, WARNING, basicConfig, getLogger
 from os import scandir
+from typing import Any
 
-from app import run_experiment, run_optimize
+from app import run_describe, run_experiment, run_optimize
 
 DEFAULT_TIMEOUT = 25 * 60
 
 
-def initialize(log_level: int) -> None:
-    getLogger("matplotlib").setLevel(WARNING)
-    basicConfig(level=log_level)
-
-
-if __name__ == "__main__":
-    """
-    Entry point for the application.
-    It supports two use cases: optimize and experiment.
-
-    The optimize use case is used to solve a single instance. For example:
-        python src -u optimize -m joint -n examples/toy_instance -t 1500
-
-    The experiment use case is used to solve multiple instances and compare the results. For example:
-        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 3600 -l INFO
-        python src -u experiment -m joint -ns all -t 3600 -l INFO
-    """
+def initialize() -> Any:
+    """Initialize the application and return the parameters."""
     parser = ArgumentParser(description="BatchPicking")
     parser.add_argument(
         "-u",
@@ -31,7 +17,7 @@ if __name__ == "__main__":
         type=str,
         help="Use case",
         required=True,
-        choices=["optimize", "experiment"],
+        choices=["optimize", "experiment", "describe"],
     )
     parser.add_argument(
         "-m",
@@ -67,7 +53,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     log_level = DEBUG if args.log_level.upper() == "DEBUG" else INFO
 
-    initialize(log_level)
+    getLogger("matplotlib").setLevel(WARNING)
+    basicConfig(level=log_level)
+
+    return args
+
+
+def dispatch(args: Any) -> None:
+    """Dispatch the use case to the corresponding function."""
     dir_list = lambda name: [f.path for f in scandir(name) if f.is_dir()]
 
     if args.use_case == "optimize":
@@ -90,5 +83,27 @@ if __name__ == "__main__":
 
         run_experiment(args.method, instances, args.timeout)
 
+    elif args.use_case == "describe":
+        run_describe()
+
     else:
         raise ValueError(f"Invalid use case: {args.use_case}")
+
+
+if __name__ == "__main__":
+    """
+    Entry point for the application.
+    It supports three use cases: optimize, experiment, and describe.
+
+    The optimize use case is used to solve a single instance. For example:
+        python src -u optimize -m joint -n examples/toy_instance -t 1500
+
+    The experiment use case is used to solve multiple instances and compare the results. For example:
+        python src -u experiment -m joint -ns all -t 3600 -l INFO
+        python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_C/2023-09-08_15-00-00_RACK-4,warehouse_D/data_2023-01-30_00 -t 3600 -l INFO
+
+    The describe use case is used to analyze the results of the optimization process. For example:
+        python src -u describe -m joint
+    """
+    args = initialize()
+    dispatch(args)

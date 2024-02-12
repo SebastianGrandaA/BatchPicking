@@ -19,12 +19,12 @@ class Benchmark(IO):
     def output_dir(self) -> str:
         return path.join(self.directory, "outputs")
 
-    def execute(self):
+    def execute(self) -> None:
         """Execute the optimization process for each instance."""
         for instance_name in self.instance_names:
             optimize(self.method, instance_name, self.timeout)
 
-    def analyze(self):
+    def analyze(self) -> None:
         """Analyze the results of the benchmark."""
         self.results = read_csv(path.join(self.output_dir, "benchmark.csv"))
         self.save_stats()

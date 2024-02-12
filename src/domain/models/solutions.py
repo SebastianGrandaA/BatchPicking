@@ -193,4 +193,4 @@ class Solution(IO):
 
         file.to_csv(benchmark_file, index=False)
 
-        info(f"Solution | Saved in {dir}")
+        info(f"Solution saved | Instance {self.instance_name}")

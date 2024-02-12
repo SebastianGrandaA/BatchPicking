@@ -209,10 +209,9 @@ class Warehouse(Instance):
     distances: Distances
     vehicle: Vehicle
 
-    def __str__(self) -> str:
-        orders = ",\n".join([str(order) for order in self.orders])
-
-        return f"Warehouse(name={self.instance_name}, volume={self.total_volume}, vehicle={self.vehicle}, items={self.nb_items}, orders=[\n{orders}\n])"
+    @property
+    def name(self) -> str:
+        return self.instance_name
 
     @property
     def minimum_batches(self) -> int:
@@ -236,6 +235,11 @@ class Warehouse(Instance):
         The path for each order is the sequence of pickups (excluding the depots).
         """
         return [order.pickups for order in self.orders]
+
+    def __str__(self) -> str:
+        orders = ",\n".join([str(order) for order in self.orders])
+
+        return f"Warehouse(name={self.name}, volume={self.total_volume}, vehicle={self.vehicle}, items={self.nb_items}, orders=[\n{orders}\n])"
 
     def distance(self, i: Item, j: Item) -> int:
         return self.distances.distance(i, j)

@@ -410,8 +410,8 @@ class VRP(Routing):
         """
         self.build_model()
         self.set_parameters()
-        debug(
-            f"VRP | Start node (idx-id): {(self.start_node_idx, self.start_node_id)} | End node (idx-id): {(self.end_node_idx, self.end_node_id)} | Vehicles: {self.nb_vehicles} | Graph: {len(self.graph)}"
+        info(
+            f"VRP | Warehouse {self.warehouse.name} |  Start (idx-id) {(self.start_node_idx, self.start_node_id)} | End (idx-id) {(self.end_node_idx, self.end_node_id)} | Vehicle {self.nb_vehicles} | Graph {len(self.graph)}"
         )
 
         initial_solution = self.get_initial_solution()
@@ -420,7 +420,9 @@ class VRP(Routing):
         )
 
         if solution and self.is_valid:
-            info(f"VRP | Solution obtained | Status: {self.status}")
+            info(
+                f"VRP | Warehouse {self.warehouse.name} | Solution obtained | Status: {self.status}"
+            )
 
             return self.build_solution(solution)
 

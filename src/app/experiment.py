@@ -11,7 +11,6 @@ def run_experiment(method: str, instance_names: list[str], timeout: int) -> None
         timeout=timeout,
     )
     benchmark.execute()
-    benchmark.analyze()
     info(
-        f"Benchmark completed | Instances: {instance_names} | Method: {method} | Timeout: {timeout}"
+        f"Benchmark | Instances {instance_names} | Method {method} | Timeout {timeout}"
     )

@@ -11,6 +11,9 @@ optimize:
 experiment:
 	python src -u experiment -m joint -ns examples/toy_instance -t 1500
 
+describe:
+	python src -u describe -m joint
+
 pre-process:
 	python scripts/duplicate_files.py
 
