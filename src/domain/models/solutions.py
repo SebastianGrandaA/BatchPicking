@@ -183,7 +183,7 @@ class Solution(IO):
         """Save the warehouse coordinates as a heatmap."""
         x, y = zip(*self.warehouse.coordinates)
         plt.figure(figsize=(10, 6), dpi=300)
-        plt.hexbin(x, y, gridsize=30, cmap="YlGnBu", bins="log", edgecolors="black")
+        plt.hexbin(x, y, gridsize=30, cmap="YlGnBu", bins="log")
         plt.colorbar(label="Density", aspect=5)
         plt.xlabel("Longitude", fontsize=12)
         plt.ylabel("Latitude", fontsize=12)

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pandas import read_csv
 
+from domain.BatchPicking import BatchPicking
 from services.io import IO
 
 
@@ -74,7 +75,7 @@ class Benchmark(IO):
     def execute(self) -> None:
         """Execute the optimization process for each instance."""
         for instance_name in self.instance_names:
-            optimize(self.method, instance_name, self.timeout)
+            BatchPicking.optimize(self.method, instance_name, self.timeout)
 
     def preprocess(self) -> None:
         """If there are repeated instance names, only take the best improvement (others are discarded). Also, if there is no improvement, discard the row."""
@@ -103,6 +104,16 @@ class Benchmark(IO):
 
     def save_boxplot(self) -> None:
         """Save the boxplot of the benchmark."""
+        data = {
+            "y": "improvement",
+            "data": self.results,
+            "palette": "Set2",
+            "fliersize": 5,
+            "linewidth": 2.5,
+            "boxprops": {"facecolor": "None"},
+        }
+
+        # Boxplot of the improvement by warehouse
         self.results["warehouse_name"] = (
             self.results["instance_name"].str.split("/").str[-2]
         )
@@ -110,18 +121,48 @@ class Benchmark(IO):
         plt.figure(figsize=(10, 6), dpi=300)
         sns.boxplot(
             x="warehouse_name",
-            y="improvement",
-            data=self.results,
-            palette="Set2",
-            fliersize=5,
-            linewidth=2.5,
-            boxprops={"facecolor": "None"},
+            **data,
         )
         plt.title("Improvement by Warehouse", fontsize=14, fontweight="bold")
-        plt.xlabel("Warehouse Name", fontsize=12)
+        plt.xlabel("Warehouse", fontsize=12)
         plt.ylabel("Improvement (%)", fontsize=12)
         plt.xticks(rotation=45, fontsize=10)
         plt.yticks(fontsize=10)
         plt.grid(True, which="major", linestyle="--", linewidth="0.5", color="gray")
         plt.tight_layout()
-        plt.savefig(path.join(self.output_dir, "boxplot.png"))
+        plt.savefig(path.join(self.output_dir, "boxplot_warehouse.png"))
+
+        # Boxplot of the improvement by method
+        plt.figure(figsize=(10, 6), dpi=300)
+        sns.boxplot(
+            x="method",
+            **data,
+        )
+        plt.title("Improvement by Method", fontsize=14, fontweight="bold")
+        plt.xlabel("Method", fontsize=12)
+        plt.ylabel("Improvement (%)", fontsize=12)
+        plt.xticks(rotation=45, fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.grid(True, which="major", linestyle="--", linewidth="0.5", color="gray")
+        plt.tight_layout()
+        plt.savefig(path.join(self.output_dir, "boxplot_method.png"))
+
+        # Boxplot of the execution time by method
+        plt.figure(figsize=(10, 6), dpi=300)
+        sns.boxplot(
+            {
+                **data,
+                "y": "execution_time",
+                "x": "method",
+            }
+        )
+        plt.title("Execution Time by Method", fontsize=14, fontweight="bold")
+        plt.xlabel("Method", fontsize=12)
+        plt.ylabel("Execution Time (s)", fontsize=12)
+        plt.xticks(rotation=45, fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.grid(True, which="major", linestyle="--", linewidth="0.5", color="gray")
+        plt.tight_layout()
+        plt.savefig(path.join(self.output_dir, "boxplot_execution_time.png"))
+
+        plt.close("all")
