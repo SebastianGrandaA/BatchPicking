@@ -1,5 +1,17 @@
 """
-# Batch-Picking problem
+\title{The Batch-Picking problem}
+
+\section{Introduction}
+
+
+
+
+
+
+
+
+
+----
 
 \section{Description du problème}
 

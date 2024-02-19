@@ -40,7 +40,12 @@ if __name__ == "__main__":
 
     for instance_name in instance_names:
         path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", instance_name
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            "..",
+            "..",
+            "data",
+            instance_name,
         )
         process(path, file_names)
         print(f"Processed {instance_name}")

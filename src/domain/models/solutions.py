@@ -1,10 +1,11 @@
 from logging import error, info
 from os import makedirs, path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pyomo.environ as pyo
-from pandas import DataFrame, concat, read_csv
+from pandas import DataFrame, concat, read_csv, to_datetime
 from pydantic import BaseModel
 
 from services.io import IO
@@ -15,19 +16,21 @@ from .instances import Instance, Item, Vehicle, Warehouse
 DEFAULT_METRICS = {
     "total_distance": 0,
 }
+DEFAULT_TIMEOUT = 2 * 60  # 2 minutes
 
 
 class Problem(BaseModel):
     warehouse: Warehouse
-    timeout: int = 100  # seconds
+    timeout: int = DEFAULT_TIMEOUT
+    verbose: bool = False
 
     @property
     def minimum_batches(self) -> int:
         return self.warehouse.minimum_batches
 
-    def is_valid(self, result) -> bool:
+    def is_valid(self, result: Any) -> bool:
         if result.solver.termination_condition == pyo.TerminationCondition.infeasible:
-            error(f"GraphPartition | Infeasible model")
+            error(f"Problem | Infeasible model")
             return False
 
         return (
@@ -41,7 +44,7 @@ class Problem(BaseModel):
     def solve(self, **kwargs):
         model = self.build_model(**kwargs)
         solver = pyo.SolverFactory("gurobi")
-        result = solver.solve(model, tee=True)
+        result = solver.solve(model, tee=self.verbose)
 
         if self.is_valid(result):
             return self.build_solution(model)
@@ -93,7 +96,7 @@ class Batch(Instance):
     def is_feasible(self, vehicle: Vehicle) -> bool:
         return (
             self.total_volume <= vehicle.max_volume
-            and self.total_nb_orders <= vehicle.max_nb_orders
+            and self.nb_orders <= vehicle.max_nb_orders
         )
 
     def __str__(self) -> str:
@@ -129,11 +132,15 @@ class Batch(Instance):
         plt.plot(x[0], y[0], "go")
         plt.plot(x[-1], y[-1], "ro")
         plt.legend(["Route", "Start", "End"])
+        plt.xlabel("Longitude", fontsize=12)
+        plt.ylabel("Latitude", fontsize=12)
+        plt.title(f"Route", fontsize=14, fontweight="bold")
         plt.savefig(path)
         plt.close()
 
 
 class Solution(IO):
+    warehouse: Warehouse
     batches: list[Batch]
 
     def __str__(self) -> str:
@@ -144,7 +151,7 @@ class Solution(IO):
             batch.to_txt(id=str(idx)) for idx, batch in enumerate(self.batches)
         )
 
-    def get_stats(self, execution_time: float) -> DataFrame:
+    def get_stats(self, execution_time: float, method: str) -> DataFrame:
         """Return a DataFrame with the stats of the solution."""
         input_path = path.join(
             self.directory,
@@ -159,11 +166,36 @@ class Solution(IO):
         )
 
         stats = evaluate(input_path, solution_file)
-        stats["execution_time"] = execution_time
+        info = {
+            "execution_time": execution_time,
+            "created_at": to_datetime("now").strftime("%d-%m-%Y %H:%M"),
+            "nb_orders": self.warehouse.nb_orders,
+            "nb_items": self.warehouse.nb_items,
+            "nb_positions": self.warehouse.nb_positions,
+            "nb_batches": len(self.batches),
+            "method": method,
+        }
+        stats.update(info)
 
         return DataFrame(stats, index=[0])
 
-    def save(self, time: float) -> None:
+    def save_heatmap(self, path: str) -> None:
+        """Save the warehouse coordinates as a heatmap."""
+        x, y = zip(*self.warehouse.coordinates)
+        plt.figure(figsize=(10, 6), dpi=300)
+        plt.hexbin(x, y, gridsize=30, cmap="YlGnBu", bins="log", edgecolors="black")
+        plt.colorbar(label="Density", aspect=5)
+        plt.xlabel("Longitude", fontsize=12)
+        plt.ylabel("Latitude", fontsize=12)
+        plt.title(
+            f"Warehouse {self.instance_name} coordinates",
+            fontsize=14,
+            fontweight="bold",
+        )
+        plt.savefig(path)
+        plt.close()
+
+    def save(self, time: float, method: str) -> bool:
         """Save the solution in a text file and the map of each batch."""
         dir = path.join(
             self.directory,
@@ -182,9 +214,12 @@ class Solution(IO):
         for idx, batch in enumerate(self.batches):
             batch.save_map(path.join(dir, f"batch_{idx}.png"))
 
+        # Save the warehouse positions in a heatmap
+        self.save_heatmap(path.join(dir, "warehouse.png"))
+
         # Save the stats of the solution
         benchmark_file = path.join(dir, "..", "..", "benchmark.csv")
-        statistics = self.get_stats(time)
+        statistics = self.get_stats(time, method)
 
         if path.exists(benchmark_file):
             file = read_csv(benchmark_file)
@@ -195,4 +230,9 @@ class Solution(IO):
 
         file.to_csv(benchmark_file, index=False)
 
-        info(f"Solution saved | Instance {self.instance_name}")
+        has_improved = statistics["improvement"].values[0] > 0
+        info(
+            f"Solution saved | Instance {self.instance_name} | Improvement {has_improved}"
+        )
+
+        return has_improved

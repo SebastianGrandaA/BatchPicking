@@ -1,3 +1,4 @@
+from logging import warning
 from typing import Any
 
 import numpy as np
@@ -16,6 +17,9 @@ class Position(BaseModel):
 
     def __eq__(self, other: Any) -> bool:
         return self.x == other.x and self.y == other.y
+
+    def __str__(self) -> str:
+        return f"Position(id={self.id}, x={self.x}, y={self.y})"
 
 
 class Item(BaseModel):
@@ -67,10 +71,17 @@ class Distances(BaseModel):
         return v
 
     def distance(self, i: Item, j: Item) -> int:
-        if i == j:
+        if i == j or i.position == j.position:
             return 0
 
-        return self.matrix[i.position_id, j.position_id]
+        value = self.matrix[i.position_id, j.position_id]
+
+        if np.isnan(value) or value < 0:
+            warning(f"Invalid distance ({str(i)}, {str(j)}: {value}). Setting to 0.")
+
+            return 0
+
+        return value
 
 
 class Order(BaseModel):
@@ -156,7 +167,7 @@ class Instance(BaseModel):
         return sum(order.volume for order in self.orders)
 
     @property
-    def total_nb_orders(self) -> int:
+    def nb_orders(self) -> int:
         return len(self.orders)
 
     @property
@@ -176,6 +187,10 @@ class Instance(BaseModel):
     @property
     def position_ids(self) -> list[int]:
         return [position.id for position in self.positions]
+
+    @property
+    def coordinates(self) -> list[tuple[float, float]]:
+        return [item.coordinates for item in self.items]
 
     @property
     def nb_positions(self) -> int:
@@ -208,6 +223,7 @@ class Warehouse(Instance):
     instance_name: str
     distances: Distances
     vehicle: Vehicle
+    current_solution: list[list[Item]] = []
 
     @property
     def name(self) -> str:
@@ -219,19 +235,26 @@ class Warehouse(Instance):
         The minimum number of batches required to fulfill the orders based on the capacity.
         In the worst case, we consider the maximum between the volume and the number of orders capacity.
         """
-        minimum = max(
-            [
-                self.total_volume / self.vehicle.max_volume,
-                self.total_nb_orders / self.vehicle.max_nb_orders,
-            ]
+        nb_batches = (
+            max(
+                [
+                    self.total_volume / self.vehicle.max_volume,
+                    self.nb_orders / self.vehicle.max_nb_orders,
+                ]
+            )
+            * 1.1
         )
 
-        return np.ceil(minimum).astype(int)
+        assert (
+            nb_batches < self.nb_orders
+        ), f"Too many batches {nb_batches} for {self.nb_orders} orders"
+
+        return np.ceil(nb_batches).astype(int)
 
     @property
     def base_solution(self) -> list[list[Item]]:
         """
-        The base solution is the S-shaped path to visit each order individually.
+        The base solution is the S-shaped path to visit each order individually excluding the depots.
         The path for each order is the sequence of pickups (excluding the depots).
         """
         return [order.pickups for order in self.orders]

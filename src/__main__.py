@@ -61,7 +61,10 @@ def initialize() -> Any:
     args = parser.parse_args()
     log_level = DEBUG if args.log_level.upper() == "DEBUG" else INFO
 
-    getLogger("matplotlib").setLevel(WARNING)
+    external_loggers = ["pyomo.core", "matplotlib"]
+    for logger in external_loggers:
+        getLogger(logger).setLevel(WARNING)
+
     basicConfig(level=log_level)
     stream = StreamHandler()
     formatter = Formatter("[%(asctime)s] %(levelname)s : %(message)s", datefmt="%H:%M")

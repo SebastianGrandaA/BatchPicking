@@ -120,8 +120,8 @@ class TSPBase(Routing):
     def build_matrix(self) -> dict[tuple[int, int], float]:
         all_distances = {
             (id_i, id_j): self.warehouse.distance(i, j)
-            for id_i, i in self.graph.items()
-            for id_j, j in self.graph.items()
+            for id_i, i in self.node_items
+            for id_j, j in self.node_items
         }
         # return all distances that are in combinations of the items
         return {
@@ -185,7 +185,7 @@ class TSPBase(Routing):
 
         return Batch(orders=batch.orders, route=route)
 
-    def route(self, batch: Batch) -> Batch:
+    def route_batch(self, batch: Batch) -> Batch:
         model = Model()
         self.build_graph(batch)
         matrix = self.build_matrix()

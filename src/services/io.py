@@ -26,9 +26,9 @@ class Reader(IO):
     def split(self, string: str) -> str:
         return string.strip().split("\n")[1:]
 
-    def read(self, filename: str) -> str:
+    def read(self, filename: str, folder: str = "data") -> str:
         """Read the content of the file."""
-        dir = path.join(self.directory, "data", self.instance_name, f"{filename}.txt")
+        dir = path.join(self.directory, folder, self.instance_name, f"{filename}.txt")
 
         if path.exists(dir):
             with open(dir, "r") as file:
@@ -104,3 +104,25 @@ class Reader(IO):
             orders=orders,
             vehicle=self.build_vehicle(vehicle),
         )
+
+    def load_solution(self, orders: list[Order]) -> list[list[Item]]:
+        """Load the solution from the input files."""
+        raise NotImplementedError("Untested")
+
+        try:
+            file = self.read("solution", "outputs")
+            lines = file.split("\n")[1:]
+            batches = []
+
+            for batch in range(2, len(lines), 3):
+                data = [int(id) for id in lines[batch].split(" ")]
+                is_in_order = lambda data, od: all(id in data for id in od.position_ids)
+                items = [od.items for od in orders if is_in_order(data, od)]
+                items = [item for sublist in items for item in sublist]
+                batches.append(items)
+
+            ids = [item.id for batch in batches for item in batch]
+            return batches
+
+        except FileNotFoundError:
+            return None
