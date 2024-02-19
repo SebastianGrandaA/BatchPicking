@@ -24,10 +24,7 @@ optimize-joint:
 optimize-sequential:
 	python src -u optimize -m sequential -n examples/toy_instance -t 1800
 
-experiment:
-	python src -u experiment -m joint -ns examples/toy_instance,warehouse_A/data_2023-05-22 -t 1800 -l INFO
-	python src -u experiment -m sequential -ns examples/toy_instance,warehouse_A/data_2023-05-22,warehouse_B/data_2023-05-22,warehouse_B/data_2023-05-23,warehouse_B/data_2023-05-24,warehouse_B/data_2023-05-25,warehouse_B/data_2023-05-26,warehouse_B/data_2023-05-27 -t 1800 -l INFO
-	
+experiment:	
 	python src -u experiment -m sequential -ns warehouse_A/data_2023-05-22,warehouse_A/data_2023-05-23,warehouse_A/data_2023-05-24,warehouse_A/data_2023-05-25,warehouse_A/data_2023-05-26,warehouse_A/data_2023-05-27 -t 1800 -l INFO
 	
 	python src -u experiment -m sequential -ns warehouse_B/data_2023-05-22,warehouse_B/data_2023-05-23,warehouse_B/data_2023-05-24,warehouse_B/data_2023-05-25,warehouse_B/data_2023-05-26,warehouse_B/data_2023-05-27 -t 1800 -l INFO
