@@ -5,18 +5,6 @@ from pydantic import BaseModel
 
 from domain.models.solutions import Batch
 
-"""
-TODO due that the clustered are formed based on the , 
-    a criteria to insert an order into another batch is checking if it fits...
-
-    TODO movement:
-        Destroy-and-relocate
-            Destroy a batch (starting fro single)
-            Insert the orders into the p50 least loaded batches
-
-Perturbate the sequence intra batch is not necesary because the subprolems are mostly solved to optimality
-"""
-
 
 def validate_move(func):
     def wrapper(self, solution: list[Batch]) -> list[Batch]:
@@ -30,9 +18,9 @@ def validate_move(func):
 
 
 class Move(BaseModel):
-    routing_method: Any = None
-
     """Generic move for the local search."""
+
+    routing_method: Any = None
 
     @validate_move
     def apply(self, _: list[Batch]) -> list[Batch]:
@@ -45,6 +33,31 @@ class Move(BaseModel):
         assert len(routes) == 1
 
         return routes[0]
+
+
+class Swap(Move):
+    """
+    Select two random orders from two different batches and swap them.
+    Both new batches are routed again.
+    """
+
+    @validate_move
+    def apply(self, solution: list[Batch]) -> list[Batch]:
+        source, destination = choice(solution), choice(solution)
+        order_source, order_destination = choice(source.orders), choice(
+            destination.orders
+        )
+
+        source.orders.remove(order_source)
+        destination.orders.remove(order_destination)
+
+        source.orders.append(order_destination)
+        destination.orders.append(order_source)
+
+        source = self.route(source)
+        destination = self.route(destination)
+
+        return solution
 
 
 class Relocate(Move):
@@ -68,8 +81,6 @@ class Relocate(Move):
         # Select the source batch and the order to relocate
         source = solution.pop(0)
         order = choice(source.orders)
-        # TODO is this sufficient? in the routing problem it updates the items, then we only care about orders? (remove)
-        # TODO also the routing proces update batch metrics??
         source.orders.remove(order)
 
         # Select the destination batch and route the new batch

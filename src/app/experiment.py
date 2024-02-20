@@ -4,7 +4,11 @@ from services.benchmark import Benchmark
 
 
 def run_experiment(method: str, instance_names: list[str], timeout: int) -> None:
-    """Interface to execute the experiment use case."""
+    """
+    # Experiment use case.
+
+    Execute a set of instances to benchmark different methods.
+    """
     benchmark = Benchmark(
         instance_names=instance_names,
         method=method,

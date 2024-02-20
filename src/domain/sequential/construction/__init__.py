@@ -22,37 +22,23 @@ CONSTRUCTION_ROUTING_DEFAULT_PARAMS = {"is_warehouse_complete": False}
 
 class Construction(Problem):
     """
-    Construction heuristic interface to build an initial solution.
+    #### Construction heuristic
 
-    #### 2.1.1. Construction heuristic
+    The construction heuristic is a sequential approach that given the batches are formed, the routing problem is solved independently as a TSP for each batch.
+    The main motivation for this approach is to employ a distance metric that does not require to enumerate all the possible routes to measure the convenience of grouping orders into batches.
 
-        Heursitic: cluster-first, route-second heuristic initially proposed buy Bodin and Sexton [4]
+    The Hausdorff distance measures the geographical closeness between the items of two orders.
+    The intra-order closeness is 0 since the items are already grouped in the same order.
+    This leads to inconveniences when modeling the batching problem as a set partitioning problem, as it would always create single-order batches because there is no incentive to group orders together.
+    Classical clustering algorithms can not be easily applied because most of them rely on the Euclidean distance, which is not suitable for our desired metric. Also, it became difficult to control the number and the capacity of the clusters.
+    To overcome these issues, a location-allocation problem is proposed to exploit the Hausdorff distance as a measure of the convenience for clustering orders.
+    Specifically, the p-median problem determines the subset of orders that are closer to other orders based on the unitary and the volume capacity constraints.
+    The set partitioning problem and the clustering algorithms were also implemented as a proof of concept, in the classes `GraphPartition` and `Clustering`, respectively.
+    More details about this metric can be found at `src/services/distances.py`.
 
-        [chapter 9 book]
-        Clustering algorithms use customer proximity to guide and possibly simplify the routing aspect. Geographical closeness among customers is used either a priori or in parallel with
-        the routing process to cluster them. An early approach was that of Cullen, Jarvis, and Ratliff [8], who proposed an interactive optimization approach for the multiple vehicle dial-
-        a-ride problem where customers are serviced by a homogeneous fleet. For the same context,
-        Bodin and Sexton [4] developed a traditional cluster-first, route-second approach. Single vehicle cases are solved using the method of Sexton and Bodin [44
-
-
-        cluster-first-route-second heuristic
-
-        Sequential approach:
-            Batching
-                Most of the literature relates this problem with the set partitioning problem, in which the objective function requires to compute the best picking tour for each combination of orders (all the positions in those orders).
-                !! However, this approach would require a column-generation schema to avoid enumerating all the possible routes. (opportunity to continue the research)
-                Therefore, we seek to evaluate the closeness and apply a clustering algorithm
-
-                    [2] Order Batching in Order Picking Warehouses: A Survey of Solution Approaches.pdf
-
-                Clustering
-                by closeness
-            2.1.1.1.TSP (only one formulation)
-
-    ## Implementation details
-
-    N versions of the TSP is proposed.
-
+    Once the batches are formed, the routing problem can be decomposed for each batch and solved in parallel using a TSP solver.
+    From an experimentation point of view, the TSP solver can be a simple TSP (TSPBase), a multi-commodity flow TSP (TSPMultiCommodityFlow), or a simplified implementation of [OR-Tools](https://developers.google.com/optimization/routing/vrp) for the VRP problem.
+    The last option is the default routing method as it shows the best performance in terms of solution quality and computational time.
     """
 
     def batch(self, batching_method: str) -> list[Batch]:

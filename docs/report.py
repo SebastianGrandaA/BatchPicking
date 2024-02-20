@@ -1,7 +1,306 @@
 """
+----- ENGLISH -----
 \title{The Batch-Picking problem}
 
+\section{Abstract}
+
+The Batch-Picking problem consists of grouping orders and determining the sequence of storage locations to pick all items in a batch.
+The items are partitioned into a set of orders, in such way that all items of an order must be picked in the same route, by the same picker.
+The objective is to minimize the total distance traveled by the pickers to satisfy all the orders in the warehouse.
+This project implements two main optimization approaches: the **sequential** and the **joint** approaches.
+
 \section{Introduction}
+
+The Batch-Picking problem, formally known in the literature as the Joint Order Batching and Picker Routing Problem (JOBPRP), is a well-known problem in the context of warehouse logistics.
+As the name suggests, the problem combines two optimization problems: the order batching problem and the picker routing problem.
+The order batching problem consists of grouping subsets of orders to pick their items together, if that leads to a reduced total distance traveled.
+On the other hand, the picker routing problem consists of determining the sequence of storage locations to pick all orders in a batch.
+
+This problem has been studied in the literature under different approaches.
+A Clustered Vehicle Routing Problem (CluVRP) has been proposed by \cite{cvrp_jopbrp} to model the joint problem. In this problem, the customers are grouped into clusters, and the vehicles can enter and leave the clusters multiple times.
+In our case, the customers are the items to be picked, and the clusters represent the order integrality condition to pick all items of an order in the same tour.
+An adapted formulation for this problem as a CluVRP is described in the Annexes section.
+
+This problem has also been addressed sequentially, where the order batching problem is solved first, and then the routes are obtained for each batch.
+The advantage of this approach is the evident reduction in the complexity of the problem, as the routing problem can be solved as a Traveling Salesman Problem (TSP) for each batch.
+The drawback is the lack of coordination between the two problems, which can lead to suboptimal solutions because the batching decisions are made without considering the routing problem.    
+Related ideas can be found at \cite{survey_order_batching}, where the authors discuss the batch-first route-second approaches against the joint approach, and the benefits of solving the problems simultaneously.
+These approaches usually require a computationally expensive calculation of the distance metric, such as calculating the shortest path between each combination of orders for a set-partitioning problem (i.e. the best sequence to pick all items in a batch).
+We consider a relevant research challenge to find a metric that best approximates the shortest sequence of orders to pick in a batch, without the need for an exhaustive search.
+
+In this work, we study the Joint Order Batching and Picker Routing Problem (JOBPRP) as a variant of the Pickup and Delivery Problem (PDP), and we propose a batch-first route-second heuristic to solve large instances of the problem.
+The proposed heuristic is based on the Hausdorff distance, which is a measure the closeness of two sets of points, and it is used to determine the best way to group orders into batches.
+The initial solution is obtained by solving the p-median problem, and the best sequence of items to pick in a batch is determined by solving a set of independent TSPs.
+Once the initial solution is obtained, a local-search algorithm is applied to improve the solution by swapping orders between batches and re-optimizing the routes.
+
+The remainder of this report is organized as follows. In the next section, we describe and formulate the problem. Then, we present the proposed heuristic, the implementation details and the numerical experiments. Finally, we provide a discussion of the results and the conclusions of this work.
+
+---
+
+\section{Problem statement}
+
+This section aims to model the Batch-Picking problem as a variant of the Pickup and Delivery Problem (PDP).
+More specifically, we model the problem as the Multi-depot Vehicle Routing Problem with Mixed Pickup and Delivery (MDVRPMPD).
+According to \cite{survey_static_pdp}, this problem is classified as the multi-vehicle one-to-many-to-one PDP with single demands and mixed solutions [1-M-1|P/D|m].
+
+In this problem, we aim to minimize the total distance traveled by the pickers to satisfy all the orders in the warehouse.
+Therefore, we model the items instead of the positions in such a way that items belonging to different orders can share the same position.
+We are given a set of items \(I\) grouped by disjoint orders \(O\), where \(i(o)\) refers to the items of order \(o \in O\).
+Let \(G = (V, A)\) be the directed graph representing the warehouse layout, where \(V\) is the set of nodes and \(A\) is the set of arcs.
+
+The set of nodes \(V\) is composed of the item nodes \(I\), the artificial nodes \(J\), and the depot nodes \(D\). These sets are disjoint and satisfy \(V = I \cup J \cup D\).
+The depot nodes \(D = \{0, n\}\), where \(0\) is the origin and \(n = |I| + 1\) is the destination of each route.
+The artificial nodes \(J = \{|I| + 2, \dots, |I| + |O| + 1\}\) are the consolidation points for each order to ensure the order integrity condition.
+Each node \(i \in V\) is associated with a demand and a volume, denoted by \(p_i \geq 0\) and \(v_i \geq 0\), respectively.
+However, only artificial nodes have positive demand and volume, which are equal to 1 and to the total volume of the order, respectively.
+The demand and the volume of the item and depot nodes are 0 \(p_i = v_i = 0\) for \(i \in I \cup D\).
+Furthermore, the physical position in which each node is located is represented by \(pos(i) \forall i \in V\). It is possible that multiple nodes share the same position.
+
+The arc set \(A = \{(i, j) \in V \times V : i \neq j\}\) are all feasible paths between the nodes, each with a distance \(d_{ij} \geq 0\) obtained from the positions of nodes \(pos(i)\) and \(pos(j)\) in the warehouse.
+The distance to or from the depot nodes is 0 \(d_{ij} = d_{ji} = 0 \forall i \in D, j \in V\). The distance matrix is asymmetric and satisfies the triangle inequality.
+
+The nodes are visited by a set of identical pickers \(k \in K\), each with an unitary and volume capacity.
+The unitary capacity constraint refers to the maximum number of orders that a picker can transport in a route, whereas the volume capacity constraint, to the maximum volume.
+The upper bounds are denoted by \(C_{unit}\) and \(C_{volume}\), respectively.
+We assume that there are enough pickers to cover all the orders in the warehouse, which is given by \(\underline{B} > 0\), the minimal number of batches necessary to have all orders assigned to a batch with a \(\alpha\%\) of slack \ref{eq:min_batches}.
+
+\(\underline{B} = \max\left(\frac{\sum_{i \in I} v_i}{C_{volume}}, \frac{|O|}{C_{unit}}\right) \times (1 + \alpha)\) \label{eq:min_batches}
+
+The artificial nodes act as consolidation points for each order, ensuring that all the items of an order are picked-up in the same route.
+This is achieved by forcing the pickers to visit the item nodes and delivering them to the artificial nodes.
+Let \(d(i) \in J\) be the delivery - artificial - node of the item node \(i\).
+
+We present a three-index commodity-flow formulation that involves two types of variables: selection and flow variables.
+Let \(x_{ijk} \in \{0, 1\}\) be the binary decision variables indicating whether the arc \((i, j) \in A\) is selected by the picker \(k \in K\).
+The commodity-flow variables \(l_{ik} \geq 0\) indicate the cumulative load of picker \(k \in K\) after visiting node \(i \in V\). This load represents the number of orders picked up (i.e. quantity artificial nodes).
+The model is formulated as follows:
+
+\min \sum_{k \in K} \sum_{(i, j) \in A} d_{ij} x_{ijk} \label{eq:objective_vrp}
+\sum_{k \in K} \sum_{j \in V \setminus \{0\}} x_{ijk} = 1, \quad \forall i \in I, \label{eq:service_constraints_vrp}
+\sum_{j \in V} x_{ijk} = \sum_{j \in V} x_{j,d(i),k}, \quad \forall k \in K, \forall i \in I, \label{eq:pickup_delivery}
+
+\sum_{j \in I \cup \{n\}} x_{0jk} = 1, \quad \forall k \in K, \label{eq:start_end_route}
+\sum_{i \in V \setminus \{n\}} x_{ijk} = \sum_{i \in V \setminus \{0\}} x_{jik}, \quad \forall k \in K, \forall j \in V, \label{eq:flow_conservation}
+\sum_{i \in J \cup \{0\}} x_{ink} = 1, \quad \forall k \in K, \label{eq:delivery_end_route}
+x_{ijk} \times (l_{ik} + p_{j} - l_{jk}) = 0, \quad \forall k \in K, \forall (i, j) \in A, \label{eq:flow_definition}
+\sum_{i \in V} p_{i} l_{ik} \leq C_{unit}, \quad \forall k \in K, \label{eq:unit_capacity}
+\sum_{i \in V} v_{i} l_{ik} \leq C_{volume}, \quad \forall k \in K, \label{eq:volume_capacity}
+l_{0k} = 0, \quad \forall k \in K, \label{eq:initial_load}
+
+The objective function \eqref{eq:objective_vrp} minimizes the total distance traveled by the pickers.
+...
+    
+This model can be further extended to consider heterogeneous pickers, time windows, and node-dependent costs, among extensions.
+The MDVRPMPD is NP-Hard because it is an special case of the Capacitated Vehicle Routing Problem (CVRP) and the Pickup and Delivery Problem (PDP).
+
+---
+
+\section{Methods}
+
+This section describes the sequential approach to solve the Batch-Picking problem.
+This approach consists of a construction heuristic and a local search algorithm to improve the initial solution.
+
+\subsection{Construction heuristic}
+Inspired by the Benders decomposition technique, the construction heuristic solves the problem by fixing the set of batches and solving the routing problem independently as a TSP for each batch.
+The main motivation for this approach is to employ a distance metric that does not require to enumerate all the possible routes to measure the convenience of grouping orders into batches.
+
+\subsubsection{Hausdorff distance}
+  ...
+
+\subsubsection{Batching problem}
+
+The Hausdorff distance measures the geographical closeness between the items of two orders.
+The intra-order closeness is 0 since the items are already grouped in the same order.
+This leads to inconveniences when modeling the batching problem as a set partitioning problem, as it would always create single-order batches because there is no incentive to group orders together.
+Classical clustering algorithms can not be easily applied because most of them rely on the Euclidean distance, which is not suitable for our desired metric. Also, it became difficult to control the number and the capacity of the clusters.
+To overcome these issues, a location-allocation problem is proposed to exploit the Hausdorff distance as a measure of the convenience for clustering orders.
+Specifically, the p-median problem determines the subset of orders that are closer to other orders based on the unitary and the volume capacity constraints.
+
+The p-median problem consists of selecting a subset of facilities, among a set of candidates, to be used to serve a set of demand points \cite{book_facility_location}.
+The objective is to minimize the total travel distance between the demand points and the facilities.
+
+In our context, we seek to group the orders into batches based on capacity constraints and a custom distance metric.
+Therefore, the concept of "batch" can be interpreted as a consolidation facility for a set of orders.
+Let \(\mathcal{I}\) be the set of potential orders to select \(p\) batches from, and \(\mathcal{J}\) be the set of orders to be served.
+The closeness between orders \(i \in \mathcal{I}\) and \(j \in \mathcal{J}\) is given by \(c_{ij}\).
+As before, let \(C_{unit}\) and \(C_{volume}\) be the maximum number of orders and the maximum volume that a batch can serve, respectively.
+Also, let \(v_i\) be the volume of order \(i \in \mathcal{I}\ and \(\underline{B}\) be the minimum number of batches to be formed \ref{eq:min_batches}.
+
+Let \(x_{ij} \in \{0, 1\}\) be the allocation variable, where \(x_{ij} = 1\) if order \(j\) is assigned to batch \(i\), and \(x_{ij} = 0\) otherwise.
+As mentioned in [1], when \(\mathcal{I} = \mathcal{J}\) and \(c_{ii} = 0 \forall i \in \mathcal{I}\), the traditional location variables \(y_i\) can be replaced by the allocation variables \(x_{ii} \forall i \in \mathcal{I}\).
+The objective is to maximize the total closeness between the orders in the same batch, and can be formulated as follows:
+
+\max \sum_{i \in \mathcal{I}} \sum_{j \in \mathcal{J}: j \neq i} c_{ij} x_{ij} \label{eq:objective_pmedian}
+\text{s.t.} \sum_{i \in \mathcal{I}} x_{ij} = 1 \quad \forall j \in \mathcal{J} \label{eq:unique_assignment_pmedian}
+\sum_{j \in \mathcal{J}: j \neq i} x_{ij} \leq (|\mathcal{J}| - p) x_{ii} \quad \forall i \in \mathcal{I} \label{eq:selected_batches_pmedian}
+\sum_{i \in \mathcal{I}} x_{ii} \leq p \label{eq:maximum_batches_pmedian}
+\sum_{j \in \mathcal{J}} x_{ij} \leq C_{unit} \quad \forall i \in \mathcal{I} \label{eq:unitary_capacity_pmedian}
+\sum_{j \in \mathcal{J}} v_j x_{ij} \leq C_{volume} \quad \forall i \in \mathcal{I} \label{eq:volume_capacity_pmedian}
+x_{ij} = x_{ji} \quad \forall i \in \mathcal{I}, j \in \mathcal{J} \label{eq:symmetry_pmedian}
+x_{ii} \in \{0, 1\} \quad \forall i \in \mathcal{I} \label{eq:binary_pmedian}
+x_{ij} \in \{0, 1\} \quad \forall i \in \mathcal{I}, j \in \mathcal{J} \label{eq:binary_pmedian_2}
+
+The objective function \eqref{eq:objective_pmedian} maximizes the total closeness between the orders in the same batch.
+Constraints \eqref{eq:unique_assignment_pmedian} ensure that each order is assigned to exactly one batch.
+Constraints \eqref{selected_batches_pmedian} prohibit the assignment of orders to un-selected batches.
+Constraints \eqref{eq:maximum_batches_pmedian} ensure that exactly \(p\) batches are selected.
+Constraints \eqref{eq:unitary_capacity_pmedian} and \eqref{eq:volume_capacity_pmedian} enforce the capacity constraints.
+Constraints \eqref{eq:symmetry_pmedian} ensure that the allocation variables are symmetric.
+Constraints \eqref{eq:binary_pmedian} and \eqref{eq:binary_pmedian_2} define the domain of the allocation variables.
+
+The p-median problem is NP-hard. However, since we the locations represent the orders (the number of locations is small) we can use exact methods to solve it.
+
+\subsubsection{Routing problem}
+
+Once the batches are formed, the routing problem can be decomposed for each batch and solved in parallel using a TSP solver.
+This model can be formulated...
+...
+
+\subsection{Local search}
+
+The main motivation for the local search is to exploit the local structure of the problem to find better solutions.
+Particularly, due that the set of items for each batch remains fixed in the initial solution, natural neighborhoods are to swap and to relocate orders between batches.
+At each iteration, until the stopping criterion is met, a move operator is randomly selected, between the swap and the relocation operators, and the first-improving solution is selected from the neighborhood based on Tabu Search and Simulated Annealing principles.
+To avoid cycling through the same solutions, the Tabu Search memory \cite{tabu_search} is used to store properties of the solutions that are forbidden to be selected again.
+This memory is adjusted during the search process to force the algorithm to explore different regions of the search space (diversification).
+Furthermore, non-improving solutions might be accepted to escape from local optima using the Metropolis criterion \cite{simulated_annealing}.
+The best solution found is returned as the final solution after a maximum number of iterations.
+
+\subsubsection{Move operators}
+
+We consider two move operators to explore the neighborhood of the current solution: the swap and the relocate operators.
+The swap operator exchanges two orders between two different batches, whereas the relocate operator moves an order from one batch to another.
+
+The swap operator is defined as follows: given two batches \(b_1\) and \(b_2\), and two orders \(o_1 \in b_1\) and \(o_2 \in b_2\), the operator swaps the orders between the batches.
+The origin batch \(b_1\) is chosen prioritizing the least filled batches (i.e. the batches with the highest capacity residual), and the destination batch \(b_2\) is chosen randomly among the batches that can accommodate the order.
+To evaluate the solution, the TSP solver is used to re-compute the paths for the affected batches, and the improvement is the distance difference between the new and the old paths.
+However, this operator is not sufficient since it maintains the same number of batches in the solution.
+
+The relocate operator is given by two batches \(b_1\) and \(b_2\), and an order \(o_1 \in b_1\), the operator relocates the order to the batch \(b_2\).
+The same selection criteria are used to choose the origin and destination batches.
+Only the destination batch is re-routed, whereas the origin batch is just updated without the items of the relocated order.
+The combination of these two operators allows the algorithm to explore all the possible solutions in the search space, since we can obtain solutions with different number of batches and different orders in each batch.
+Thus, we confirm the conexity of the neighborhood, which is a desirable property for local search algorithms.
+
+\subsubsubsection{Tabu search}
+
+The Tabu Search memory is used to store the properties of the solutions that are forbidden to be selected again.
+A solution is represented as a map from the batch to the set of orders in the batch. No solution is allowed to be selected again if all the batches have the same set of orders.
+This memory is adjusted during the search process to force the algorithm to explore different regions of the search space (diversification).
+At the end of the iterations, the search is diversified to escape from local optima and the memory is reduced to half of its size.
+
+\subsubsubsection{Simulated annealing}
+
+The simulated annealing strategy is used to accept non-improving solutions to escape from local optimas based on a probability.
+The probability of accepting a non-improving solution is given by the Metropolis criterion, which is defined as the exponential of the negative difference between the new and the current solution divided by the temperature \ref{eq:metropolis_criterion}.
+The temperature is reduced at each iteration by a cooling rate, which is a decreasing function of the iteration count.
+This process avoids taking worse solutions at the end of the search process (intensification).
+
+p_{accept} = \exp\left(-\frac{d_{new} - d_{current}}{T}\right) \label{eq:metropolis_criterion}
+
+---
+
+\section{Implementation}
+
+The complete implementation of this project can be found at [this repository](https://github.com/SebastianGrandaA/BatchPicking/).
+It focuses on intuitive and modular design, rather than performance, as it is a proof of concept.
+Therefore, it is adequate for offline applications, without any execution time constraints.
+
+\subsection{Project architecture}
+
+This project consists of three main components: the domain, the app, and the services.
+The domain (`src/domain/`) contains the business logic of the application, including the optimization models and procedures.
+The app (`src/app/`) implements three use cases to interact with the domain: `optimize`, `experiment`, and `describe`.
+The `optimize` use case is responsible for solving a single instance of the problem using a specific method; the `experiment` use case, for executing a set of instances to benchmark different methods; and the `describe` use case, for providing an analysis of the results.
+The services (`src/services/`) contain the input/output procedures, including the reader and writer classes, distance calculators, and other utilities that are external to the domain.
+
+The `src/__main__.py` file is the entry point for the application. It initializes the application and dispatches the use case to the corresponding function.
+This project expects the instances to be located in the `data/` directory, and the results will be saved in the `results/` directory.
+
+With respect to the domain, the `src/domain/BatchPicking.py` file contains the main class, `BatchPicking`, which orchestrates the optimization process.
+This class is responsible for reading the instances, solving the problem, and saving the best solution found in a maximum number of iterations. Introductory information about the domain problem, the Batch-Picking problem, is provided in that file as well.
+
+There are two main optimization approaches implemented in this project: the sequential and the joint approaches.
+The `src/domain/joint.py` file contains the implementation of the joint approach, which solves the problem by considering the order batching and picker routing problems simultaneously.
+There are two versions of the joint approach implementation: the first uses the OR-Tools library, whereas the second, a commercial solver.
+
+On the other side, the `src/domain/sequential.py` file contains the implementation of the sequential approach, which solves the problem by decomposing it into two subproblems: the order batching problem and the picker routing problem.
+In addition to the `PMedian` batching method, the set partitioning problem and the clustering algorithms were also implemented as a proof of concept, in the classes `GraphPartition` and `Clustering`, respectively.
+From an experimentation point of view, the TSP solver can be a simple TSP (TSPBase), a multi-commodity flow TSP (TSPMultiCommodityFlow), or a simplified implementation of [OR-Tools](https://developers.google.com/optimization/routing/vrp) for the VRP problem.
+The last option is the default routing method as it shows the best performance in terms of solution quality and computational time.
+
+As can be seen, the project is organized in a modular way and implements several design patterns (inheritance, dependency injection, and others) to facilitate the extension and maintenance of the code.
+Generally, the `solve` and `optimize` methods are the interfaces for generic optimization methods, while more specific methods are implemented under the corresponding submodules, such as `route`.
+
+Finally, the `src/services/benchmark.py` file contains the benchmarking procedures, which are responsible for executing the experiments and analyzing the results.
+The validation of the results is performed by comparing the solutions with the S-shaped path of serving the orders individually, and it is taken from the [UE repository](https://gitlab.com/LinHirwaShema/poip-2024).
+Installation and usage instructions can be found in the `README.md` file of the repository.
+
+Further improvements can be achieved by using a more specialized solver, such as the [VRP solver](https://vrpsolver.math.u-bordeaux.fr) developed at [INRIA](https://www.inria.fr/fr).
+However, currently the [Python](https://github.com/inria-UFF/VRPSolverEasy) implementation does not cover the pick-up and delivery feature.
+A workaround is to implement the solver in [Julia](https://github.com/inria-UFF/BaPCodVRPSolver.jl) and integrated it with python using [PyJulia](https://github.com/JuliaPy/pyjulia?tab=readme-ov-file).
+
+\subsection{Language and dependencies}
+
+This project is implemented in Python 3.10.
+This decision was mainly motivated by the requirements of the project.
+Although Python is a good choice for prototyping due to its simplicity and versatility, it is not the best choice for performance-critical applications.
+This problem is known as the Two-Language Problem, and Julia is a good alternative to replace Python in this context.
+Julia offers a good balance between performance and productivity because it is a compiled language with a syntax similar to Python, and particularly suitable for scientific computing and optimization problems.
+
+All the dependencies of this project are listed in the `requirements.txt` file. A list of the main ones is provided below:
+* [Pyomo](http://www.pyomo.org/): A Python-based open-source optimization modeling language.
+* [Gurobi](https://www.gurobi.com/): A commercial solver for mathematical programming problems.
+* [OR-Tools](https://developers.google.com/optimization): A set of libraries for combinatorial optimization problems.
+
+
+----
+
+\section{References}
+
+cvrp_jopbrp
+  Aerts, B., Cornelissens, T., & Sörensen, K. (2021). The joint order batching and picker routing problem: Modelled and solved as a clustered vehicle routing problem. Computers & Operations Research, 129, 105168.
+
+survey_order_batching
+  [2] Henn, S., Koch, S., & Wäscher, G. (2012). Order batching in order picking warehouses: a survey of solution approaches (pp. 105-137). Springer London.
+
+survey_static_pdp
+  [1] Berbeglia, G., Cordeau, J. F., Gribkovskaia, I., & Laporte, G. (2007). Static pickup and delivery problems: a classification scheme and survey. Top, 15, 1-31.
+  [2] Desaulniers, G., Desrosiers, J., Erdmann, A., Solomon, M. M., & Soumis, F. (2002). VRP with Pickup and Delivery. The vehicle routing problem, 9, 225-242.
+  [3] Battarra, M., Cordeau, J. F., & Iori, M. (2014). Chapter 6: pickup-and-delivery problems for goods transportation. In Vehicle Routing: Problems, Methods, and Applications, Second Edition (pp. 161-191). Society for Industrial and Applied Mathematics.
+  [4] Parragh, S. N., Doerner, K. F., & Hartl, R. F. (2008). A survey on pickup and delivery problems: Part I: Transportation between customers and depot. Journal für Betriebswirtschaft, 58, 21-51.
+
+book_location_science
+  [1] Laporte, G., Nickel, S., & Saldanha-da-Gama, F. (2019). Introduction to location science (pp. 1-21). Springer International Publishing.
+
+---
+
+----- FRENCH -----
+
+
+----------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

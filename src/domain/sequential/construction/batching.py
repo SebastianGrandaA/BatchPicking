@@ -8,77 +8,28 @@ from services.distances import Hausdorff
 
 
 class PMedian(Problem):
-    """
-    [in document, Introduce metric... ]
+    # """
+    # ## The p-median problem
 
-    The batching problem is addressed as a location-allocation problem to exploit the custom distance metrics that do not require to determine the shortest path between the items of the orders.
-    Specifically, the p-median problem is used to group the orders into batches based on capacity constraints and a closeness metric that measures the similarity between the orders.
+    # The p-median problem consists of selecting a subset of facilities, among a set of candidates, to be used to serve a set of demand points [1].
+    # The objective is to minimize the total travel distance between the demand points and the facilities.
 
+    # In our context, we seek to group the orders into batches based on capacity constraints and a custom distance metric.
+    # Therefore, the concept of "batch" can be interpreted as a consolidation facility for a set of orders.
+    # Let \(\mathcal{I}\) be the set of potential orders to select \(p\) batches from, and \(\mathcal{J}\) be the set of orders to be served.
+    # The closeness between orders \(i \in \mathcal{I}\) and \(j \in \mathcal{J}\) is given by \(c_{ij}\).
+    # As before, let \(C_{unit}\) and \(C_{volume}\) be the maximum number of orders and the maximum volume that a batch can serve, respectively.
+    # Also, let \(v_i\) be the volume of order \(i \in \mathcal{I}\ and \(\underline{B}\) be the minimum number of batches to be formed \ref{eq:min_batches}.
 
-    JUSTIFICACION DE LOCATION ALLOCATION
-        Normalmente se aborda como un problema de partitionamiento, donde la metrica de distancia se refiere a to the shortest path between the items of the orders in a batch.
-        However, this is too expensive unless a decomposition schema is used, such as column generation.
+    # Let \(x_{ij} \in \{0, 1\}\) be the allocation variable, where \(x_{ij} = 1\) if order \(j\) is assigned to batch \(i\), and \(x_{ij} = 0\) otherwise.
+    # As mentioned in [1], when \(\mathcal{I} = \mathcal{J}\) and \(c_{ii} = 0 \forall i \in \mathcal{I}\), the traditional location variables \(y_i\) can be replaced by the allocation variables \(x_{ii} \forall i \in \mathcal{I}\).
+    # The objective is to maximize the total closeness between the orders in the same batch, and can be formulated as follows:
+    # A complete formulation of the p-median problem is available at the [report](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9).
+    # The p-median problem is NP-hard. However, since we the locations represent the orders (the number of locations is small) we can use exact methods to solve it.
 
-        Partitioning: no funciona con mi metrica (closeness) porque no hay distancia de una orden a si misma, entonces siempre dara clusters de 1 pedido... no agrupa nada.
-            ENTONCES: necesitamos un modelo que no necesite la distancia a si misma
-
-        Clustering tipo k-means, k-means consraint, dbscan , etc:
-            No podemos directamente controla el volumen (aunque si la cantidad de pedidos)
-            En alunos modelos se asume distancia euclidiana, pero no es el caso aqui
-
-        Location-allocation model:
-            1. Init
-                I: set of potential centers (all orders)
-                J: set of customers (all orders)
-                P: quantity of centers to open (batches) -- calculated based on capacity constraints (minmum_batches) (assert p < |I|)
-                c_ij: closeness between i and j
-
-
-    ---
-
-    ... fundament why the clustering and the set partitioning does not work with my closeness metric and the capcity constraints.
-    [cite the book laporte]
-    The p-median problem consists of selecting a subset of facilities, among a set of candidates, to be used to serve a set of demand points. The objective is to minimize the total travel distance between the demand points and the facilities.
-        The p-median problem is a well-known location problem that has been widely studied in the literature.
-
-    In our context, we seek to group the orders into batches based on capacity constraints and a custom distance metric.
-    Therefore, the concept of "batch" in this context refers to an order that acts as a facility to serve the other orders.
-    Let \(\mathcal{I}\) be the set of potential orders to select \(p\) batches from, and \(\mathcal{J}\) be the set of orders to be served.
-    The closeness between orders \(i \in \mathcal{I}\) and \(j \in \mathcal{J}\) is given by \(c_{ij}\).
-    As before, let \(C_{unit}\) and \(C_{volume}\) be the maximum number of orders and the maximum volume that a batch can serve, respectively.
-    Finally, let \(v_i\) be the volume of order \(i \in \mathcal{I}\.
-
-    The maximum number of batches \(p\) is calculated based on the capacity constraints with an additional safety margin \(\alpha\):
-    \begin{equation}
-    p = (1 + \alpha) \max \left\{\left\lceil\frac{|\mathcal{J}|}{C_{unit}}\right\rceil, \left\lceil\frac{\sum_{j \in \mathcal{J}} v_j}{C_{volume}}\right\rceil\right\} \label{eq:p_median_calculation}
-    \end{equation}
-
-    Let \(x_{ij} \in \{0, 1\}\) be the allocation variable, where \(x_{ij} = 1\) if order \(j\) is assigned to batch \(i\), and \(x_{ij} = 0\) otherwise.
-    As mentioned in \cite{book:location_allocation}, when \(\mathcal{I} = \mathcal{J}\) and \(c_{ii} = 0 \forall i \in \mathcal{I}\), the traditional location variables \(y_i\) can be replaced by the allocation variables \(x_{ii} \forall i \in \mathcal{I}\).
-    The objective is to maximize the total closeness between the orders in the same batch, and can be formulated as follows:
-
-    \max \sum_{i \in \mathcal{I}} \sum_{j \in \mathcal{J}: j \neq i} c_{ij} x_{ij} \label{eq:objective_pmedian}
-    \text{s.t.} \sum_{i \in \mathcal{I}} x_{ij} = 1 \quad \forall j \in \mathcal{J} \label{eq:unique_assignment_pmedian}
-    \sum_{j \in \mathcal{J}: j \neq i} x_{ij} \leq (|\mathcal{J}| - p) x_{ii} \quad \forall i \in \mathcal{I} \label{eq:selected_batches_pmedian}
-    \sum_{i \in \mathcal{I}} x_{ii} \leq p \label{eq:maximum_batches_pmedian}
-    \sum_{j \in \mathcal{J}} x_{ij} \leq C_{unit} \quad \forall i \in \mathcal{I} \label{eq:unitary_capacity_pmedian}
-    \sum_{j \in \mathcal{J}} v_j x_{ij} \leq C_{volume} \quad \forall i \in \mathcal{I} \label{eq:volume_capacity_pmedian}
-    x_{ij} = x_{ji} \quad \forall i \in \mathcal{I}, j \in \mathcal{J} \label{eq:symmetry_pmedian}
-    x_{ii} \in \{0, 1\} \quad \forall i \in \mathcal{I} \label{eq:binary_pmedian}
-    x_{ij} \in \{0, 1\} \quad \forall i \in \mathcal{I}, j \in \mathcal{J} \label{eq:binary_pmedian_2}
-
-    The objective function \eqref{eq:objective_pmedian} maximizes the total closeness between the orders in the same batch.
-    Constraints \eqref{eq:unique_assignment_pmedian} ensure that each order is assigned to exactly one batch.
-    Constraints \eqref{selected_batches_pmedian} prohibit the assignment of orders to un-selected batches.
-    Constraints \eqref{eq:maximum_batches_pmedian} ensure that exactly \(p\) batches are selected.
-    Constraints \eqref{eq:unitary_capacity_pmedian} and \eqref{eq:volume_capacity_pmedian} enforce the capacity constraints.
-    Constraints \eqref{eq:symmetry_pmedian} ensure that the allocation variables are symmetric.
-    Constraints \eqref{eq:binary_pmedian} and \eqref{eq:binary_pmedian_2} define the domain of the allocation variables.
-
-    The p-median problem is NP-hard. However, since we the locations represent the orders (the number of locations is small) we can use exact methods to solve it.
-
-    TODO set timer as unlimited.
-    """
+    # ## References
+    # [1] Laporte, G., Nickel, S., & Saldanha-da-Gama, F. (2019). Introduction to location science (pp. 1-21). Springer International Publishing.
+    # """
 
     def closeness_objective(self, model: pyo.ConcreteModel) -> float:
         closeness = Hausdorff().closeness
@@ -148,7 +99,6 @@ class PMedian(Problem):
         model.volume_capacity = pyo.Constraint(
             model.I, rule=self.volume_capacity_constraint
         )
-        # model.symmetry = pyo.Constraint(model.I, model.J, rule=self.symmetry_constraint)
 
         return model
 
@@ -197,6 +147,8 @@ class PMedian(Problem):
 
 
 class Clustering(Problem):
+    """K-means constrained clustering."""
+
     def build_model(self):
         """
         Source: https://joshlk.github.io/k-means-constrained/
@@ -231,6 +183,8 @@ class Clustering(Problem):
 
 
 class GraphPartition(Problem):
+    """Graph partitioning problem."""
+
     def closeness_objective(self, model: pyo.ConcreteModel) -> float:
         closeness = Hausdorff().closeness
 

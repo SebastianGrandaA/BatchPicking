@@ -13,7 +13,7 @@ class Hausdorff:
         Symmetric Hausdorff distance between two orders, which is the maximum of the directed distances.
         The directed Hausdorff distance between two orders, which is the maximum distance between any item in order 1 and its nearest item in order 2.
 
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.directed_hausdorff.html
+        Source: https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.directed_hausdorff.html
         """
         if order_1 == order_2:
             return 0

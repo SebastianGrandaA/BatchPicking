@@ -6,12 +6,15 @@ from domain.sequential.local_search import LocalSearch
 
 class Sequential(Method):
     """
+    ### Sequential approach: batch-first route-second heuristic
+
+    This approach consists of a construction heuristic and a local search algorithm to improve the initial solution.
+    The construction method is based on a batch-first route-second heuristic, where once the batches are formed, the routing problem is solved independently for each batch.
+
     ## Implementation details
-    The routing problem is solved in parallel with the TSP problem. This implements multiprocessor because it is an ...-bound problem.
-    N version of the partitioning problem.
-    N versions of the TSP is proposed.
-
-
+    The routing problem is solved in parallel with the TSP problem. Since it is a CPU-bound problem, the parallelization is done by using the multi-processing technique.
+    Three versions of the batching problem are proposed: `PMedian`, `Clustering`, and `GraphPartitioning`.
+    Similarly, three versions of the TSP are proposed: `TSPBase`, `TSPMultiCommodityFlow`, and `VRP`.
     """
 
     @measure_consumption

@@ -12,7 +12,10 @@ from domain.models.solutions import Batch, Route
 
 class TSPMultiCommodityFlow(Routing):
     """
+    ### TSP multi-commodity flow
+
     To eliminate sub-tours, the formulation proposed by Claus (1984) uses multi-commodity flows.
+    Implemented using the [Pyomo](http://www.pyomo.org/) library.
     """
 
     def total_distance(self, batch: Batch, model: pyo.ConcreteModel):
@@ -102,20 +105,12 @@ class TSPMultiCommodityFlow(Routing):
 
 class TSPBase(Routing):
     """
-    Inspired by the Gurobi [example](https://www.gurobi.com/jupyter_models/traveling-salesman/)
+    TSP implementation using Gurobi.
+    Inspired by the [Gurobi example](https://www.gurobi.com/jupyter_models/traveling-salesman/)
     """
 
     def build_graph(self, batch: Batch) -> None:
-        items = batch.items
-        depots = batch.depots
-
-        # Nodes are the depots (only two) and the items in the batch.
-        # nodes = [depots[0]] + items + [depots[1]]
-        # TODO check this. Assumption: without start and end. They will be added later
-        nodes = items
-
-        # node-to-item mapping
-        self.graph = {idx: item for idx, item in enumerate(nodes)}
+        self.graph = {idx: item for idx, item in enumerate(batch.items)}
 
     def build_matrix(self) -> dict[tuple[int, int], float]:
         all_distances = {
@@ -199,25 +194,13 @@ class TSPBase(Routing):
         # Constraints
         for i in self.node_ids:
             model.addConstr(
-                quicksum(is_edge[i, j] for j in self.node_ids if i != j)
-                == 2
-                # name="degree"
+                quicksum(is_edge[i, j] for j in self.node_ids if i != j) == 2
             )
 
-        # model.addConstrs(
-        # quicksum(is_edge[i, j] for j in self.node_ids if i != j) == 2,
-        # (is_edge.sum(i, '*') == 2 for i in self.node_ids),
-        # name="degree"
-        # )
-        # model.addConstrs(
-        #     (is_edge[i, j] == is_edge[j, i] for i, j in pairs),
-        #     name="symmetry"
-        # )
         model._vars = is_edge
         model.Params.lazyConstraints = 1
 
         model.optimize(lambda model, where: self.subtour_elimination(model, where))
-        value = 0  # model.objVal
-        # TODO check this
+        value = 0
 
         return self.build_solution(batch, is_edge, value)

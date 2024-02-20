@@ -48,9 +48,6 @@ class Benchmark(IO):
             TODO mencionar en el reporte que mi solicion es mejor que la solution reportada por ellos (ademas que mejor que la solucion base)
 
 
-
-
-
         Tests were performed on N instances ...
         Explicacion de metricas generales, improvement promedio por warehouse, etc...
         comparacion de algoritmos, este es n veces mas rapido y da mejor soljucon en el n% de instancias, ....
@@ -150,7 +147,7 @@ class Benchmark(IO):
         # Boxplot of the execution time by method
         plt.figure(figsize=(10, 6), dpi=300)
         sns.boxplot(
-            {
+            **{
                 **data,
                 "y": "execution_time",
                 "x": "method",

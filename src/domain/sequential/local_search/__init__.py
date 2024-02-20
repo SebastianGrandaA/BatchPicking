@@ -3,7 +3,7 @@ from random import choice
 from typing import Any
 
 from domain.models.solutions import Batch, Problem
-from domain.sequential.local_search.operators import Move, Relocate
+from domain.sequential.local_search.operators import Move, Relocate, Swap
 from domain.sequential.local_search.search import SimmulatedAnnealing, TabuSearch
 
 LS_MAX_ITERATIONS = 10
@@ -11,44 +11,15 @@ LS_MAX_ITERATIONS = 10
 
 class LocalSearch(Problem):
     """
-    Local search interface to improve the initial solution.
+    ## Local search
 
-
-    2. Neighborhood structure
-        Moves...
-            Swap: orders from different batches
-            N-: orders from one batch to others
-
-    TS
-        To avoid cycling, solutions possessing some attributes of recently visited solution are forbidden, or tabu, for a number of iterations, unless they improve upon the best known solution possessing one of these attributes.
-
-    SA
-        The algorithm also embeds a mechanism allowing worse solutions...
-
-    !! Multi-start
-
-
-    MOVES
-        In this study, we devise four operators to construct the neighbors of the current solution. The four operators address
-        different aspects of the MVSPDP: The relocation operator and the inversion operator account for inter-route and intra-route
-        variations, respectively. The selection operator processes the selection of pickup nodes in the MVSPDP. Furthermore, the
-        addition/deletion operator adjusts the number of vehicles used.
-        For generating the neighbors, the proposed TS randomly performs one of the four operators on the current solution and
-        repeats this procedure until the predetermined neighborhood size is achieved. Two methods are proposed for determining
-        the probability of an operator being selected: ﬁxed probability and adaptive probability control. More details on the four
-        operators are presented below.
-        Relocation. This operator produces an inter-route variation by moving a randomly chosen node to a previous or subsequent
-        route. The destination is limited to keep the sequence of the polar angles of nodes as complete as possible. Fig. 3 illustrates
-        an application of the relocation operator in which node v9 is randomly chosen and relocated to the subsequent route.
-        Inversion. The inversion operator produces an intra-route variation that inverts a random partial route to alter the visiting
-        order. An example of this operator is presented in Fig. 4. The chosen partial route v5 → v9 → v12 is inverted into v12 → v9 →
-        v5
-
-        TODO check projet GOPP
-
-    !! How to recompute the new path?
-
-
+    The main motivation for the local search is to exploit the local structure of the problem to find better solutions.
+    Particularly, due that the set of items for each batch remains fixed in the initial solution, natural neighborhoods are to swap and to relocate orders between batches.
+    At each iteration, until the stopping criterion is met, a move operator is randomly selected, between the swap and the relocation operators, and the first-improving solution is selected from the neighborhood based on Tabu Search and Simulated Annealing principles.
+    To avoid cycling through the same solutions, the Tabu Search memory is used to store properties of the solutions that are forbidden to be selected again.
+    This memory is adjusted during the search process to force the algorithm to explore different regions of the search space (diversification).
+    Furthermore, non-improving solutions might be accepted to escape from local optima using the Metropolis criterion.
+    The best solution found is returned as the final solution after a maximum number of iterations.
     """
 
     current_solution: list[Batch]
@@ -72,7 +43,7 @@ class LocalSearch(Problem):
         operator_params = {
             "routing_method": self.routing_method,
         }
-        self.operators = [Relocate(**operator_params)]
+        self.operators = [Relocate(**operator_params), Swap(**operator_params)]
         self.strategies = {
             "simulated_annealing": SimmulatedAnnealing(),
             "tabu_search": TabuSearch(),
@@ -86,7 +57,9 @@ class LocalSearch(Problem):
 
     def should_accept(self, new_solution: list[Batch], count: int) -> bool:
         """
-        Integrate the tabu search memory and the simulated annealing criterion to accept or reject the new solution.
+        Acceptance criterion
+
+        Integrate tabu search memory and the simulated annealing strategies to accept or reject the new solution.
         The solution is accepted if it is not tabu and it is better than the current solution (based on the Metropolis criterion).
         """
         if self.tabu_search.is_tabu(new_solution):
@@ -109,16 +82,7 @@ class LocalSearch(Problem):
         return choice(self.operators)
 
     def solve(self) -> list[Batch]:
-        """
-        Local search algorithm to improve the initial solution.
-
-        At each iteration, until the stopping criterion is met, a solution is generated by applying a randomly selected move operator to the current solution.
-        If the new solution satisfies the acceptance criterion, based on Tabu Search and Simulated Annealing principles, it is accepted as the new current solution using a first improvement strategy.
-        The search is diversified at the half of the iterations to escape from local minimums.
-        Finally, the best solution found during the search is returned.
-
-        A further improvement is to implement a best improvement strategy, exploiting the parallelism of the TSP problem.
-        """
+        """Local search algorithm to improve the initial solution."""
         return self.current_solution  # TODO implement local search
         count = 0
         self.initialize()

@@ -1,91 +1,56 @@
-# BatchPicking
+# Batch-Picking
 
-## Abstract
-    TODO integrar con BatchPicking.py
-    El problema de batch picking consiste en agrupar un conjunto de ordenes en lotes, y luego definir la secuencia de ubicaciones de almacenamiento a visitar para recuperar todas las ordenes asignadas al lote.
-    El objetivo es minimizar la distancia total recorrida por los pickers, y maximizar la cercania entre las ordenes dentro de un lote.
-        
-    Dos approaches para resolver el problema de batch picking en un warehouse.
-    El primer enfoque es el enfoque conjunto, que resuelve el problema como un vehicle routing problem (VRP).
-    El segundo enfoque es una aproximacion del conjunto, que resuelve el problema como un problema de particionamiento, y posteriormente un travelling salesman problem (TSP) por cada particion.
-    En esta presentacion, explicare la formalizacion del problema, las soluciones propuestas, y los resultados obtenidos.
+The Batch-Picking problem consists of grouping orders and determining the sequence of storage locations to pick all items in a batch.
+The items are partitioned into a set of orders, in such way that all items of an order must be picked in the same route, by the same picker.
+The objective is to minimize the total distance traveled by the pickers to satisfy all the orders in the warehouse.
 
+This project implements two main optimization approaches: the **sequential** and the **joint** approaches.
+A detailed description of the problem, the implemented methods, and the results can be found in the [report](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9). A rendered version is available at `docs/` folder.
 
-    The algorithms were implemented in Python and the code is available in the [repository]().
-        Architecture design
-            Principles: (not escalability)
-            Modularity: to extend
+## Implementation details
 
-            Design patterns: inherit, etc..
+The implementation of this project focuses on intuitive and modular design, rather than performance, as it is a proof of concept.
+Therefore, it is adequate for offline applications, without any execution time constraints.
 
-    Mencionar: offline VRP (no hay restriccion de tiempo de ejecucion)
+### Project architecture
 
+This project consists of three main components: the domain, the app, and the services.
+The domain (`src/domain/`) contains the business logic of the application, including the optimization models and procedures.
+The app (`src/app/`) implements three use cases to interact with the domain: `optimize`, `experiment`, and `describe`.
+The `optimize` use case is responsible for solving a single instance of the problem using a specific method; the `experiment` use case, for executing a set of instances to benchmark different methods; and the `describe` use case, for providing an analysis of the results.
+The services (`src/services/`) contain the input/output procedures, including the reader and writer classes, distance calculators, and other utilities that are external to the domain.
 
-## Architecture
-    def solve methods are the interface of the optimization process. It then can be further call several methods, which normally is more specific (route, batch, etc)
-    ****
-    Explicar arquitectura del codigo
-    La logica se separa en dos componentes: domain logic and services.
-    The domain logic contains the models, ....
-    The services contains the details that are not 
-    This separation is done to make the code more modular, testable, and maintainable.
+The `src/__main__.py` file is the entry point for the application. It initializes the application and dispatches the use case to the corresponding function.
+This project expects the instances to be located in the `data/` directory, and the results will be saved in the `results/` directory.
 
+With respect to the domain, the `src/domain/BatchPicking.py` file contains the main class, `BatchPicking`, which orchestrates the optimization process.
+This class is responsible for reading the instances, solving the problem, and saving the best solution found in a maximum number of iterations. Introductory information about the domain problem, the Batch-Picking problem, is provided in that file as well.
 
-    La estructura del proyecto esta inspirada in the modularity priciple (en el patron de diseno: (Hexagonal Architecture, Clean Architecture, Onion Architecture, , ports and adapters, etc)
-    En ese sentido, el codigo fuente (src) esta organizado en tres carpetas independientes: app, domain, services.
-    La carpeta app contiene la ejecucion de los casos de uso, como el de `optimize`, `experiment`, y `describe`.
-        El caso de uso `optimize` resuelve el problema de optimizacion para una instancia en particular, mientras que el caso de uso `experiment` resuelve multiples instancias. Obtenido los resultados, el caso de uso `describe` analiza los resultados obtenidos con estadisticas y graficas.
-    La carpeta domain contiene la logica del negocio, como los modelos matematicos, y la logica de optimizacion.
-        Dos enfoques han sido implementados: el enfoque conjunto y el enfoque secuencial. El enfoque conjunto resuelve el problema de optimizacion como un vehicle routing problem (VRP), mientras que el enfoque secuencial resuelve el problema como un problema de particionamiento, y posteriormente un travelling salesman problem (TSP) por cada particion.
-        En especifico, para el enfoque conjunto, se ha implementado un capacitated vehicle routing problem with pickup and delivery (CVRPPD) con la libraria [OR-Tools](https://developers.google.com/optimization/routing).
-        ... detailles de implementacion, beneficios, TRUCOS !....
+There are two main optimization approaches implemented in this project: the sequential and the joint approaches.
+The `src/domain/joint.py` file contains the implementation of the joint approach, which solves the problem by considering the order batching and picker routing problems simultaneously.
+There are two versions of the joint approach implementation: the first uses the OR-Tools library, whereas the second, a commercial solver.
 
-    La carpeta services contiene la logica de implementacion, como la lectura y escritura de archivos, la validacion de soluciones, y la ejecucion de experimentos (benchmark).
-        La validacion de soluciones fue tomado del [repositorio del proyecto](https://gitlab.com/LinHirwaShema/poip-2024), sobre el cual no se ha aplicado ningun cambio significativo.
+On the other side, the `src/domain/sequential.py` file contains the implementation of the sequential approach, which solves the problem by decomposing it into two subproblems: the order batching problem and the picker routing problem.
+As can be seen, the project is organized in a modular way and implements several design patterns (inheritance, dependency injection, and others) to facilitate the extension and maintenance of the code.
+Generally, the `solve` and `optimize` methods are the interfaces for generic optimization methods, while more specific methods are implemented under the corresponding submodules, such as `route`.
 
+Finally, the `src/services/benchmark.py` file contains the benchmarking procedures, which are responsible for executing the experiments and analyzing the results.
+The validation of the results is performed by comparing the solutions with the S-shaped path of serving the orders individually, and it is taken from the [UE repository](https://gitlab.com/LinHirwaShema/poip-2024).
 
+### Language and dependencies
 
-        * Justification of the language used
-            Python: versatile
-            Julia: recomendar en lugar de python
+This project is implemented in Python 3.10.
+This decision was mainly motivated by the requirements of the project.
+Although Python is a good choice for prototyping due to its simplicity and versatility, it is not the best choice for performance-critical applications.
+This problem is known as the Two-Language Problem, and Julia is a good alternative to replace Python in this context.
+Julia offers a good balance between performance and productivity because it is a compiled language with a syntax similar to Python, and particularly suitable for scientific computing and optimization problems.
 
-        * List of modules and libraries
-        * Architeture of the code
-            * Classes
-            * Functions
-            * Modules
-            * Packages
-            * Files
-            * etc
+All the dependencies of this project are listed in the `requirements.txt` file. A list of the main ones is provided below:
+* [Pyomo](http://www.pyomo.org/): A Python-based open-source optimization modeling language.
+* [Gurobi](https://www.gurobi.com/): A commercial solver for mathematical programming problems.
+* [OR-Tools](https://developers.google.com/optimization): A set of libraries for combinatorial optimization problems.
 
-
-        Python es un lenguaje versatil pero poco eficiente para aplicaciones de alto rendimiento.
-        A este problema se le conoce coomo el Two-Language problem, en donde se utiliza un lenguaje facil de usar para un prototipo y luego se pasa a un lenguaje mas eficiente para la implementacion final.
-        Julia es un lenguaje que se ha vuelto popular para este proposito, ya que es facil de usar como Python pero tiene un rendimiento similar a C.
-        Por lo tanto, se recomienda que este proyecto sea migrado a Julia para mejorar su rendimiento.
-        Otra ventaja de julia es multiple dispatch, que permite que el codigo sea mas modular, facil de extender y mas eficiente por el JIT compiler.
-        En especifico, la decision de utilizar python para este proyecto fueron estrictamente por el requerimiento del proyecto, en el cual se pedia que se utilizara python o C++.
-
-
-
-
-
-
-
-    Se han implementado dos casos de uso: el de optimizar una instancia en particular, y el de ejecutar un benchmark.
-    El primer caso de uso es el mas simple, y se puede ejecutar con el siguiente comando:
-        make optimize -m joint -p data/A_data_2023-05-27 -t 60
-
-    El segundo caso de uso es mas complejo, y se puede ejecutar con el siguiente comando:
-        make benchmark -m joint -p data/A_data_2023-05-27, data/A_data_2023-05-22, data/A_data_2023-05-25 -t 60
-
-    Donde -m es el modelo a utilizar, -p es la ruta de la instancia, y -t es el tiempo maximo de ejecucion en segundos.
-
-
-
-
-This project aims to solve the BatchPicking problem and to compare the **joint** and the **sequential** solutions.
-The complete description of the problem and the proposed solution can be found in the [documentation](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9). A rendered version is available at `docs/` folder.
+## Installation and usage
 
 To set up this project, first create a virtual environment and install the dependencies using the following command:
 
@@ -93,53 +58,49 @@ To set up this project, first create a virtual environment and install the depen
 $ make init
 ```
 
-## Usage
-
 For regular usage, activate the virtual environment:
     
 ```bash
 $ make start
 ```
 
-There are three use cases: optimize, experiment, and describe.
-
-The **optimize use case** is used to solve a single instance:
+The project is designed to be used from the command line by directly running the `__main__.py` file with the desired arguments. The available arguments are the following:
 
 ```bash
-$ make optimize
+-u, --use_case (str): Use case
+-m, --method (str): Optimization method
+-n, --instance_name (str): Instance name
+-ns, --instance_names (str): List of instance names separated by comma
+-t, --timeout (int): Timeout
+-l, --log_level (str): Log level
 ```
 
-The **experiment use case** is used to solve multiple instances:
+The `Makefile` contains the main commands to interact with the application.
+For example, to run the `toy_instance` with the `sequential` method, the following command can be used:
+    
+```bash
+$ make optimize-sequential
+```
 
+Similarly for the `make optimize-joint` command runs the `toy_instance` with the `joint` method.
+
+To run the experiments, the following command will run a set of instances with both methods:
+    
 ```bash
 $ make experiment
 ```
 
-To run all instances, use the following command:
+To run all the instances, use `make experiment-all` instead.
+Finally, the `make describe` command will provide a summary of the results of the experiments.
 
-```bash
-$ make experiment_all
-```
+---
 
-The **describe use case** is used to analyze the results of the optimization process:
-
-```bash
-$ make describe
-```
-
-Finally, to run them all, use:
-
-```bash
-$ make test
-```
-
-## Develop
+## Contribute
 
 Before pushing a commit, ensure to format the code and export the dependencies:
 
 ```bash
-$ make format
-$ make freeze
+$ make pre-commit
 ```
 
 ## Notes
