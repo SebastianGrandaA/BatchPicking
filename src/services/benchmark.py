@@ -8,71 +8,11 @@ from pandas import read_csv
 from domain.BatchPicking import BatchPicking
 from services.io import IO
 
+INVALID_INSTANCES = [
+    "warehouse_D/data_2023-01-31_20",
+]
 
 class Benchmark(IO):
-    """
-    ENSURE to show ALL diagrams
-        Show batching %: quantity of orders in the batch / total quantity of orders
-
-    TODO Analisis de resultados
-        The algorithm best performs when there are several orders to batch (with relatively small quantity of items per order), because there is more opportunity to batch orders.
-            Instancias A y D
-        However, for instances with few orders and a large quantity of items per order, the solution mainly relies in the routing problem (because the partitions are likely to be single order), and thus reach a timeout from the solver.
-            Instancias B y C
-
-        Show heatmap
-
-        Calcular estas cosas con tabla de bechmark (consolidar con resultados de otra mac y pasados buenos / completos)
-
-    ## Numerical analysis
-        Benchmark: export table with `feasible, base_cost, objective_cost, improvement` columns for each instance
-            (base) SG @ poip-2024 $ python solution_checker.py -p data/A_data_2023-05-27 -s data/A_data_2023-05-27/solution.txt
-                Solution is feasible!
-                Base cost = 2261211.0
-                Objective cost = 1451245.0
-                Improvement amount = 35.82%
-
-            (base) SG @ poip-2024 $ python solution_checker.py -p data/A_data_2023-05-22 -s data/A_data_2023-05-22/solution.txt
-                Solution is feasible!
-                Base cost = 2334211.0
-                Objective cost = 1441272.0
-                Improvement amount = 38.25%
-
-            !!(base) SG @ poip-2024 $ python3 solution_checker.py -p data/A_data_2023-05-25 -s data/A_data_2023-05-25/solution.txt
-                Solution is feasible!
-                Base cost = 2024208.0
-                Objective cost = 1379935.0
-                Improvement amount = 31.83%
-
-            ---
-
-            Their best solution:
-                Solution is feasible!
-                Base cost = 1667.0
-                Objective cost = 928.0
-                Improvement amount = 44.33%
-
-            My best solution:
-                Solution is feasible!
-                Base cost = 1667.0
-                Objective cost = 716.0
-                Improvement amount = 57.05%
-
-            TODO mencionar en el reporte que mi solicion es mejor que la solution reportada por ellos (ademas que mejor que la solucion base)
-
-
-        Tests were performed on N instances ...
-        Explicacion de metricas generales, improvement promedio por warehouse, etc...
-        comparacion de algoritmos, este es n veces mas rapido y da mejor soljucon en el n% de instancias, ....
-
-        Descritive analysis.... of each row!!
-
-        Time benchmark...
-
-        The numerical results were obtained on a Intel Core i9...
-
-    """
-
     instance_names: list[str]
     method: str
     timeout: int
@@ -85,12 +25,17 @@ class Benchmark(IO):
     def execute(self) -> None:
         """Execute the optimization process for each instance."""
         for instance_name in self.instance_names:
+            if instance_name in INVALID_INSTANCES:
+                continue
+            
             BatchPicking.optimize(self.method, instance_name, self.timeout)
 
     def preprocess(self) -> None:
         """If there are repeated instance names, only take the best improvement (others are discarded). Also, if there is no improvement, discard the row."""
         self.results = self.results.sort_values("improvement", ascending=False)
-        self.results = self.results.drop_duplicates("instance_name")
+        self.results = self.results.drop_duplicates(
+            subset=["instance_name", "method"], keep="first"
+        )
         self.results = self.results[self.results["improvement"] > 0]
 
     def analyze(self) -> None:
