@@ -305,11 +305,12 @@ class VRP(Routing):
         [Reference](https://developers.google.com/optimization/routing/routing_tasks#setting-start-and-end-locations-for-routes)
         """
         self.build_graph()
+        nb_pickers = self.nb_vehicles if self.is_warehouse_complete else 1
         self.manager = pywrapcp.RoutingIndexManager(
             len(self.graph),  # number of nodes
-            self.nb_vehicles,  # number of vehicles
-            [self.start_node_idx] * self.nb_vehicles,  # start nodes
-            [self.end_node_idx] * self.nb_vehicles,  # end nodes
+            nb_pickers,  # number of vehicles
+            [self.start_node_idx] * nb_pickers,  # start nodes
+            [self.end_node_idx] * nb_pickers,  # end nodes
         )
         self.routing = pywrapcp.RoutingModel(self.manager)
 

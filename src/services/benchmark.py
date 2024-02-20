@@ -11,9 +11,10 @@ from services.io import IO
 
 class Benchmark(IO):
     """
-    TODO Analisis de resultados
-        Calculate batching %: quantity of orders in the batch / total quantity of orders
+    ENSURE to show ALL diagrams
+        Show batching %: quantity of orders in the batch / total quantity of orders
 
+    TODO Analisis de resultados
         The algorithm best performs when there are several orders to batch (with relatively small quantity of items per order), because there is more opportunity to batch orders.
             Instancias A y D
         However, for instances with few orders and a large quantity of items per order, the solution mainly relies in the routing problem (because the partitions are likely to be single order), and thus reach a timeout from the solver.
@@ -99,6 +100,10 @@ class Benchmark(IO):
         self.save_stats()
         self.save_boxplot()
 
+        self.results.to_csv(
+            path.join(self.output_dir, "benchmark_preprocessed.csv"), index=False
+        )
+
     def save_stats(self) -> None:
         """Save the stats of the benchmark."""
         stats = (
@@ -108,8 +113,25 @@ class Benchmark(IO):
             .reset_index()
         )
         stats.columns = ["Statistic", "Value"]
-        filename = path.join(self.output_dir, "improvement_stats.csv")
-        stats.to_csv(filename, index=False)
+        batching_rate = (
+            self.results["nb_orders"] / self.results["nb_batches"] * 100
+        ).round(2)
+        metrics = {
+            "mean batching rate (%)": batching_rate.mean().round(2),
+            "p90 batching rate (%)": batching_rate.quantile(0.9).round(2),
+            "mean improvement (%)": stats.loc[0, "Value"],
+            "p90 improvement (%)": self.results["improvement"].quantile(0.9).round(2),
+            "mean execution time (s)": self.results["execution_time"].mean().round(2),
+            "p90 execution time (s)": self.results["execution_time"]
+            .quantile(0.9)
+            .round(2),
+        }
+        filename = path.join(self.output_dir, "metrics.csv")
+
+        with open(filename, "w") as file:
+            file.write("Metric,Value\n")
+            for metric, value in metrics.items():
+                file.write(f"{metric},{value}\n")
 
     def save_boxplot(self) -> None:
         """Save the boxplot of the benchmark."""
