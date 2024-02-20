@@ -37,6 +37,8 @@ class Move(BaseModel):
 
 class Swap(Move):
     """
+    # Swap move
+
     Select two random orders from two different batches and swap them.
     Both new batches are routed again.
     """
@@ -62,20 +64,15 @@ class Swap(Move):
 
 class Relocate(Move):
     """
+    # Relocate move
+
     Select a random order from the least loaded batch and relocate it to another randomly selected batch from the p50 least loaded batches.
     The new batch is routed again, whereas the previous batch is just updated without the items of the relocated order.
-
     Criteria: Prioritize the batches with single orders.
     """
 
     @validate_move
     def apply(self, solution: list[Batch]) -> list[Batch]:
-        """
-        First, sort the batches by the number of orders and select the source batch, which is the least loaded batch.
-        From this batch, select a random order and relocate it to another batch.
-        The destination batch is selected from the 50% least loaded batches.
-        The new batch is routed again, whereas the previous batch is just updated without the items of the relocated order.
-        """
         solution.sort(key=lambda batch: len(batch.orders))
 
         # Select the source batch and the order to relocate

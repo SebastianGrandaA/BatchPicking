@@ -9,6 +9,12 @@ TS_MEMORY_SIZE = 10
 
 
 class SimmulatedAnnealing(BaseModel):
+    """
+    # Simulated Annealing
+
+    Non-improving solutions might be accepted to escape from local optima using the Metropolis criterion.
+    """
+
     temperature: float = SA_INITAL_TEMPERATURE
     cooling_rate: float = SA_COOLING_RATE
 
@@ -26,6 +32,13 @@ class SimmulatedAnnealing(BaseModel):
 
 
 class TabuSearch(BaseModel):
+    """
+    # Tabu Search
+
+    To avoid cycling through the same solutions, the Tabu Search adaptative memory is used to store properties of the solutions that are forbidden to be selected again.
+    This memory is adjusted during the search process to force the algorithm to explore different regions of the search space (diversification).
+    """
+
     memory_size: int = TS_MEMORY_SIZE
     memory: list[dict] = []
 
@@ -33,8 +46,6 @@ class TabuSearch(BaseModel):
         """
         Update the tabu memory with the representation of the new solution.
         A solution is represented by a dictionary that maps the batch id to the list of order ids.
-        An adaptative memory is implemented to control the size of the memory when the search is stuck in a local minimum.
-        When diversifying, the memory is reduced to the half of its size.
         """
         self.memory.append({batch.id: batch.orders for batch in solution})
 

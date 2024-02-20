@@ -91,15 +91,12 @@ class VRP(Routing):
         The construction and local search parameters have been selected based on experimentation.
         [Reference](https://developers.google.com/optimization/routing/routing_options)
         """
-        # TODO probar con diferentes parameteros y a pesar de no implementar el algoritmo, explicarlo!
         self.parameters = pywrapcp.DefaultRoutingSearchParameters()
         self.parameters.first_solution_strategy = (
             routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-            # SWEEP, SAVINGS, PARALLEL_CHEAPEST_INSERTION, etc..
         )
         self.parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.AUTOMATIC
-            # GUIDED_LOCAL_SEARCH
         )
         self.parameters.time_limit.FromSeconds(self.timeout)
         self.parameters.log_search = self.verbose
@@ -354,15 +351,11 @@ class VRP(Routing):
             )
 
     def solve(self, **kwargs) -> list[Batch]:
-        """
-        Solve an instance of the VRP.
-        """
+        """Solve an instance of the VRP."""
         return self.route()
 
     def route_batch(self, batch: Batch) -> Batch:
-        """
-        Route a single batch.
-        """
+        """Route a single batch."""
         self.warehouse.orders = batch.orders
 
         routes = self.route()
@@ -436,12 +429,7 @@ class VRPFormulation(Routing):
         )
 
     def service_constraints(self, model: pyo.ConcreteModel, i: int) -> float:
-        """
-        Return the service constraints for the pick-up nodes.
-
-        \sum_{k \in K} \sum_{j \in V \setminus \{0\}} x_{ijk} = 1, \quad \forall i \in I, \label{eq:service_constraints_vrp}
-        """
-        # NEW: \[ \sum_{k \in K} \sum_{j \in V} x_{ijk} = 1, \quad \forall i \in I \]
+        """Return the service constraints for the pick-up nodes."""
         if not self.graph[i].is_pickup:
             return pyo.Constraint.Skip
 
@@ -451,18 +439,11 @@ class VRPFormulation(Routing):
             )
             == 1
         )
-        # return sum(model.x[i, j, k] for j in self.graph.keys() if j != self.start_node_idx for k in range(self.nb_vehicles)) == 1
 
     def pickup_delivery_constraints(
         self, model: pyo.ConcreteModel, i: int, k: int
     ) -> float:
-        """
-        Return the pick-up and delivery constraints for the pick-up nodes.
-
-        \sum_{j \in V} x_{ijk} = \sum_{j \in V} x_{j,d(i),k}, \quad \forall k \in K, \forall i \in I, \label{eq:pickup_delivery}
-        TODO ojo prece que hacer pickup y delivery consectivo, y por lo tanto, todos los items de una orden estan jjuntos y luego va l sgtw order (no es mixed)?
-        """
-        # \[ \sum_{j \in V} x_{ijk} = \sum_{j \in V} x_{jd(i)k}, \quad \forall i \in J, \forall k \in K \]
+        """Return the pick-up and delivery constraints for the pick-up nodes."""
         item = self.graph[i]
 
         if not item.is_pickup:
@@ -473,17 +454,11 @@ class VRPFormulation(Routing):
         return sum(model.x[i, j, k] for j in self.node_ids) == sum(
             model.x[j, delivery, k] for j in self.node_ids
         )
-        # return sum(model.x[i, j, k] for j in self.graph.keys()) == sum(model.x[j, delivery, k] for j in self.graph.keys())
 
     def start_end_route_constraints(
         self, model: pyo.ConcreteModel, i: int, k: int
     ) -> float:
-        """
-        Return the start and end route constraints for the pick-up nodes.
-
-        \sum_{j \in I \cup \{n\}} x_{0jk} = 1, \quad \forall k \in K, \label{eq:start_end_route}
-        """
-        # NEW: \[ \sum_{j \in V \setminus D} x_{djk} = 1, \quad \forall d \in D, \forall k \in K \]
+        """Return the start and end route constraints for the pick-up nodes."""
         if not self.graph[i].is_depot:
             return pyo.Constraint.Skip
 
@@ -492,14 +467,9 @@ class VRPFormulation(Routing):
             == 1
         )
 
-        # return sum(model.x[self.start_node_idx, j, k] for j, item in self.node_items if (item.is_pickup or j == self.end_node_idx)) == 1
-
-    # == 1 TODO no funciona con == 1???
-
     def finish_at_depot_constraints(
         self, model: pyo.ConcreteModel, i: int, k: int
     ) -> float:
-        # \[ \sum_{i \in V \setminus D} x_{idk} = 1, \quad \forall d \in D, \forall k \in K \]
         if not self.graph[i].is_depot:
             return pyo.Constraint.Skip
 
@@ -511,87 +481,39 @@ class VRPFormulation(Routing):
     def flow_conservation_constraints(
         self, model: pyo.ConcreteModel, j: int, k: int
     ) -> float:
-        """
-        Return the flow conservation constraints for the pick-up nodes.
-
-        \sum_{i \in V \setminus \{n\}} x_{ijk} = \sum_{i \in V \setminus \{0\}} x_{jik}, \quad \forall k \in K, \forall j \in V, \label{eq:flow_conservation}
-        """
-        # NEW : \[ \sum_{i \in V} x_{ijk} = \sum_{i \in V} x_{jik}, \quad \forall j \in V, \forall k \in K \]
+        """Return the flow conservation constraints for the pick-up nodes."""
         return sum(model.x[i, j, k] for i in self.node_ids) == sum(
             model.x[j, i, k] for i in self.node_ids
         )
 
-        # return sum(model.x[i, j, k] for i in self.graph.keys() if i != self.end_node_idx) == sum(model.x[j, i, k] for i in self.graph.keys() if i != self.start_node_idx)
-
-    # return sum(model.x[i, self.end_node_idx, k] for i, item in self.node_items if (item.is_dummy or i == self.start_node_idx)) == 1
-    # TODO probar item.is_pickup instead
-
     def flow_definition_constraints(
         self, model: pyo.ConcreteModel, i: int, j: int, k: int
     ) -> float:
-        """
-        Return the flow definition constraints for the pick-up nodes.
-
-        x_{ijk} \times (l_{ik} + p_{j} - l_{jk}) = 0, \quad \forall k \in K, \forall (i, j) \in A, \label{eq:flow_definition}
-
-        TODO linearizar:
-            u_ik + ]sum_{j \in V} p_j x_{ijk} - u_jk \leq C_{unit} - p_j, \quad \forall k \in K, \forall (i, j) \in A
-        """
-        # NEW: \[ l_{ik} + \sum_{j \in V} p_{j} x_{ijk} \leq l_{jk} + C_{unit}(1 - x_{ijk}), \quad \forall (i, j) \in A, \forall k \in K \]
+        """Return the flow definition constraints for the pick-up nodes."""
         return model.u[i, k] + sum(
             model.x[i, j, k] * self.demands[j] for j in self.node_ids
         ) <= model.u[j, k] + self.warehouse.vehicle.max_nb_orders * (
             1 - model.x[i, j, k]
         )
 
-        # return model.x[i, j, k] * (model.u[i, k] + self.demands[j] - model.u[j, k]) == 0
-
-    # TODO probar nueva constraint
-
-    # def unit_capacity_constraints(self, model: pyo.ConcreteModel, k: int) -> float:
-    #     """
-    #     Return the unit capacity constraints for the pick-up nodes.
-
-    #     \sum_{i \in V} p_{i} l_{ik} \leq C_{unit}, \quad \forall k \in K, \label{eq:unit_capacity}
-    #     """
-    #     return sum(self.demands[i] * model.u[i, k] for i in self.graph.keys()) <= self.warehouse.vehicle.max_nb_orders
-    #     # return sum(self.demands[i-1] * model.l[i, k] for i in model.V) <= self.warehouse.vehicle.max_nb_orders
-
     def volume_capacity_constraints(self, model: pyo.ConcreteModel, k: int) -> float:
-        """
-        Return the volume capacity constraints for the pick-up nodes.
-
-        \sum_{i \in V} v_{i} l_{ik} \leq C_{volume}, \quad \forall k \in K, \label{eq:volume_capacity}
-        """
-        # # NEW: \[ \sum_{i \in I} v_{i} x_{ijk} \leq C_{volume}, \quad \forall k \in K \]
-
+        """Return the volume capacity constraints for the pick-up nodes."""
         return (
             sum(self.volumes[i] * model.u[i, k] for i in self.node_ids)
             <= self.warehouse.vehicle.max_volume
         )
-        # return sum(self.volumes[i] * model.u[i, k] for i in self.graph.keys()) <= self.warehouse.vehicle.max_volume
-        # return sum(self.volumes[i-1] * model.l[i, k] for i in model.V) <= self.warehouse.vehicle.max_volume
 
     def initial_load_constraints(
         self, model: pyo.ConcreteModel, i: int, k: int
     ) -> float:
-        """
-        Return the initial load constraints for the pick-up nodes.
-
-        l_{0k} = 0, \quad \forall k \in K, \label{eq:initial_load}
-        """
-        # NEW: \[ l_{dk} = 0, \quad \forall d \in D, \forall k \in K \]
+        """Return the initial load constraints for the pick-up nodes."""
         if not self.graph[i].is_depot:
             return pyo.Constraint.Skip
 
         return model.u[i, k] == 0
 
-        # return model.l[self.start_node_idx, k] == 0
-
     def build_model(self) -> pyo.ConcreteModel:
-        """
-        Build the mathematical model for the VRP using pyomo.
-        """
+        """Build the mathematical model for the VRP using pyomo."""
         self.build_graph()
         model = pyo.ConcreteModel()
 
@@ -633,9 +555,7 @@ class VRPFormulation(Routing):
         return model
 
     def build_solution(self, model: pyo.ConcreteModel) -> list[Batch]:
-        """
-        Build a list of batches, each one with a route and the orders to be picked.
-        """
+        """Build a list of batches."""
         batches = []
         demands, volumes = self.demands, self.volumes
 

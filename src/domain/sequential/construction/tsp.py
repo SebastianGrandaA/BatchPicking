@@ -12,10 +12,9 @@ from domain.models.solutions import Batch, Route
 
 class TSPMultiCommodityFlow(Routing):
     """
-    ### TSP multi-commodity flow
+    # TSP multi-commodity flow
 
     To eliminate sub-tours, the formulation proposed by Claus (1984) uses multi-commodity flows.
-    Implemented using the [Pyomo](http://www.pyomo.org/) library.
     """
 
     def total_distance(self, batch: Batch, model: pyo.ConcreteModel):
@@ -104,10 +103,7 @@ class TSPMultiCommodityFlow(Routing):
 
 
 class TSPBase(Routing):
-    """
-    TSP implementation using Gurobi.
-    Inspired by the [Gurobi example](https://www.gurobi.com/jupyter_models/traveling-salesman/)
-    """
+    """[Reference](https://www.gurobi.com/jupyter_models/traveling-salesman/)."""
 
     def build_graph(self, batch: Batch) -> None:
         self.graph = {idx: item for idx, item in enumerate(batch.items)}
@@ -118,7 +114,7 @@ class TSPBase(Routing):
             for id_i, i in self.node_items
             for id_j, j in self.node_items
         }
-        # return all distances that are in combinations of the items
+
         return {
             (i, j): all_distances[(i, j)] for i, j in combinations(self.node_ids, 2)
         }

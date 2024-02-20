@@ -5,15 +5,20 @@ from domain.models.instances import Order
 
 
 class Hausdorff:
+    """
+    # Hausdorff distance
+
+    The Hausdorff distance is a measure of how far two set of order items are from each other.
+    The directed Hausdorff distance between two orders, which is the maximum distance between any item in order 1 and its nearest item in order 2.
+    """
+
     def get_coordinates(self, order: Order) -> list[tuple[float, float]]:
         return [item.coordinates for item in order.items]
 
     def closeness(self, order_1: Order, order_2: Order) -> float:
         """
         Symmetric Hausdorff distance between two orders, which is the maximum of the directed distances.
-        The directed Hausdorff distance between two orders, which is the maximum distance between any item in order 1 and its nearest item in order 2.
-
-        Source: https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.directed_hausdorff.html
+        [Source](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.directed_hausdorff.html)
         """
         if order_1 == order_2:
             return 0
@@ -27,9 +32,7 @@ class Hausdorff:
         return max(distance_1_2, distance_2_1)
 
     def build_matrix(self, orders: list[Order]) -> np.ndarray:
-        """
-        Return the distance matrix between all orders.
-        """
+        """Build the Hausdorff distance matrix between the orders."""
         matrix = np.zeros((len(orders), len(orders)))
 
         for i, order_i in enumerate(orders):

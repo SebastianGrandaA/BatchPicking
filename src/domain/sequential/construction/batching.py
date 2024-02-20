@@ -8,28 +8,13 @@ from services.distances import Hausdorff
 
 
 class PMedian(Problem):
-    # """
-    # ## The p-median problem
+    """
+    # The p-median problem
 
-    # The p-median problem consists of selecting a subset of facilities, among a set of candidates, to be used to serve a set of demand points [1].
-    # The objective is to minimize the total travel distance between the demand points and the facilities.
-
-    # In our context, we seek to group the orders into batches based on capacity constraints and a custom distance metric.
-    # Therefore, the concept of "batch" can be interpreted as a consolidation facility for a set of orders.
-    # Let \(\mathcal{I}\) be the set of potential orders to select \(p\) batches from, and \(\mathcal{J}\) be the set of orders to be served.
-    # The closeness between orders \(i \in \mathcal{I}\) and \(j \in \mathcal{J}\) is given by \(c_{ij}\).
-    # As before, let \(C_{unit}\) and \(C_{volume}\) be the maximum number of orders and the maximum volume that a batch can serve, respectively.
-    # Also, let \(v_i\) be the volume of order \(i \in \mathcal{I}\ and \(\underline{B}\) be the minimum number of batches to be formed \ref{eq:min_batches}.
-
-    # Let \(x_{ij} \in \{0, 1\}\) be the allocation variable, where \(x_{ij} = 1\) if order \(j\) is assigned to batch \(i\), and \(x_{ij} = 0\) otherwise.
-    # As mentioned in [1], when \(\mathcal{I} = \mathcal{J}\) and \(c_{ii} = 0 \forall i \in \mathcal{I}\), the traditional location variables \(y_i\) can be replaced by the allocation variables \(x_{ii} \forall i \in \mathcal{I}\).
-    # The objective is to maximize the total closeness between the orders in the same batch, and can be formulated as follows:
-    # A complete formulation of the p-median problem is available at the [report](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9).
-    # The p-median problem is NP-hard. However, since we the locations represent the orders (the number of locations is small) we can use exact methods to solve it.
-
-    # ## References
-    # [1] Laporte, G., Nickel, S., & Saldanha-da-Gama, F. (2019). Introduction to location science (pp. 1-21). Springer International Publishing.
-    # """
+    The p-median problem consists of selecting a subset of facilities, among a set of candidates, to be used to serve a set of demand points.
+    The objective is to minimize the total travel distance between the demand points and the facilities.
+    In our context, we seek to group the orders into batches based on capacity constraints and a custom distance metric.
+    """
 
     def closeness_objective(self, model: pyo.ConcreteModel) -> float:
         closeness = Hausdorff().closeness
@@ -123,7 +108,6 @@ class PMedian(Problem):
     def solve(self) -> list[Batch]:
         """
         Entry point to optimize the p-median problem.
-
         A fallback to single orders is implemented in case the optimization fails.
         """
         try:
@@ -150,9 +134,7 @@ class Clustering(Problem):
     """K-means constrained clustering."""
 
     def build_model(self):
-        """
-        Source: https://joshlk.github.io/k-means-constrained/
-        """
+        """[Reference](https://joshlk.github.io/k-means-constrained/)"""
         return KMeansConstrained(
             n_clusters=self.minimum_batches,
             size_min=1,

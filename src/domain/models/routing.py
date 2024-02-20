@@ -117,8 +117,6 @@ class Routing(Problem):
         assert len(occurrences) == 1, f"Item {item} has multiple indices {occurrences}"
 
         return occurrences[0]
-        # idxs = next(key for key, value in self.self.node_items if value == item)
-        # assert len(idxs) == 1, f"Item {item} has multiple indices {idxs}"
 
     def build_matrix(self) -> Any:
         raise NotImplementedError
@@ -127,17 +125,7 @@ class Routing(Problem):
         raise NotImplementedError
 
     def solve_parallel(self, batches: list[Batch]) -> list[Batch]:
-        """
-        Solve multiple TSP instances in parallel, one for each batch (CPU-bound operation).
-
-        Parameters
-        ----------
-        method : str
-            Method to solve the TSP. Options: 'TSPBase', 'TSPMultiCommodityFlow'.
-
-        batches : list[Batch]
-            Batches of items to be routed independently.
-        """
+        """Solve multiple TSP instances in parallel (CPU-bound)."""
         routes = []
 
         with ProcessPoolExecutor() as executor:
@@ -151,17 +139,7 @@ class Routing(Problem):
         return routes
 
     def solve_sequential(self, batches: list[Batch]) -> list[Batch]:
-        """
-        Solve multiple TSP instances sequentially.
-
-        Parameters
-        ----------
-        method : str
-            Method to solve the TSP. Options: 'TSPBase', 'TSPMultiCommodityFlow'.
-
-        batches : list[Batch]
-            Batches of items to be routed independently.
-        """
+        """Solve multiple TSP instances sequentially."""
         routes = []
 
         for batch in batches:

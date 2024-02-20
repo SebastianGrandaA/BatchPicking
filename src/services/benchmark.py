@@ -32,7 +32,7 @@ class Benchmark(IO):
             BatchPicking.optimize(self.method, instance_name, self.timeout)
 
     def preprocess(self) -> None:
-        """If there are repeated instance names, only take the best improvement (others are discarded). Also, if there is no improvement, discard the row."""
+        """Preprocess the results of the benchmark."""
         self.results = self.results.sort_values("improvement", ascending=False)
         self.results = self.results.drop_duplicates(
             subset=["instance_name", "method"], keep="first"

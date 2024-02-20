@@ -11,15 +11,10 @@ LS_MAX_ITERATIONS = 10
 
 class LocalSearch(Problem):
     """
-    ## Local search
+    # Local search
 
-    The main motivation for the local search is to exploit the local structure of the problem to find better solutions.
-    Particularly, due that the set of items for each batch remains fixed in the initial solution, natural neighborhoods are to swap and to relocate orders between batches.
-    At each iteration, until the stopping criterion is met, a move operator is randomly selected, between the swap and the relocation operators, and the first-improving solution is selected from the neighborhood based on Tabu Search and Simulated Annealing principles.
-    To avoid cycling through the same solutions, the Tabu Search memory is used to store properties of the solutions that are forbidden to be selected again.
-    This memory is adjusted during the search process to force the algorithm to explore different regions of the search space (diversification).
-    Furthermore, non-improving solutions might be accepted to escape from local optima using the Metropolis criterion.
-    The best solution found is returned as the final solution after a maximum number of iterations.
+    Due that the batch structure is un-mutable in the routing problem, two move operators applied to the incumbent solution: the swap and the relocate operators.
+    At each iteration, until the stopping criterion is met, a move operator is randomly selected and the first-improving solution is obtained.
     """
 
     current_solution: list[Batch]
@@ -50,14 +45,14 @@ class LocalSearch(Problem):
         }
 
     def should_continue(self, count: int) -> bool:
-        return count < LS_MAX_ITERATIONS
+        return False  # count < LS_MAX_ITERATIONS
 
     def compute_distance(self, solution: list[Batch]) -> float:
         return sum(batch.metrics.distance for batch in solution)
 
     def should_accept(self, new_solution: list[Batch], count: int) -> bool:
         """
-        Acceptance criterion
+        # Acceptance criterion
 
         Integrate tabu search memory and the simulated annealing strategies to accept or reject the new solution.
         The solution is accepted if it is not tabu and it is better than the current solution (based on the Metropolis criterion).
@@ -83,7 +78,6 @@ class LocalSearch(Problem):
 
     def solve(self) -> list[Batch]:
         """Local search algorithm to improve the initial solution."""
-        return self.current_solution  # TODO implement local search
         count = 0
         self.initialize()
         info(f"Starting local search with {LS_MAX_ITERATIONS} iterations.")
