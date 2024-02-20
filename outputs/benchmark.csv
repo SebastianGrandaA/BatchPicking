@@ -26,3 +26,6 @@ warehouse_D/data_2023-01-31_12,True,2021588.0,12232196.0,-505.08,69.99,20-02-202
 warehouse_D/data_2023-01-31_20,True,4137675.0,33275798.0,-704.21,96.81,20-02-2024 09:09,3,87,93,36,sequential
 examples/toy_instance,True,1667.0,716.0,57.05,1.47,20-02-2024 10:30,7,25,39,3,joint
 examples/toy_instance,True,1667.0,596.0,64.25,1.43,20-02-2024 10:31,1,7,9,3,sequential
+examples/toy_instance,True,1667.0,716.0,57.05,2.0,20-02-2024 10:50,7,25,39,3,joint
+examples/toy_instance,True,1667.0,596.0,64.25,1.6,20-02-2024 10:51,1,7,9,3,sequential
+examples/toy_instance,True,1667.0,596.0,64.25,1.63,20-02-2024 10:51,1,7,9,3,sequential

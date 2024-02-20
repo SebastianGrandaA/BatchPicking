@@ -273,7 +273,7 @@ class VRP(Routing):
         [Reference](https://developers.google.com/optimization/routing/pickup_delivery).
         """
         grouped_items = self.groups[1:-1]  # exclude the depots
-        assert len(grouped_items) == self.nb_vehicles
+        assert len(grouped_items) == self.nb_vehicles, "Invalid number of vehicles"
 
         for group in grouped_items:
             delivery_idx = group[-1]
@@ -348,7 +348,9 @@ class VRP(Routing):
             return self.build_solution(solution)
 
         else:
-            error("No solution found")
+            raise ValueError(
+                f"VRP | Warehouse {self.warehouse.name} | No solution found"
+            )
 
     def solve(self, **kwargs) -> list[Batch]:
         """
@@ -363,7 +365,7 @@ class VRP(Routing):
         self.warehouse.orders = batch.orders
 
         routes = self.route()
-        assert len(routes) == 1
+        assert len(routes) == 1, "Invalid number of routes"
 
         return routes[0]
 
@@ -678,4 +680,6 @@ class VRPFormulation(Routing):
             return self.build_solution(model)
 
         else:
-            error("No solution found")
+            raise ValueError(
+                f"VRP | Warehouse {self.warehouse.name} | No solution found"
+            )
