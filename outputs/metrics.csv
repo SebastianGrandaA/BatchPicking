@@ -1,7 +1,7 @@
 Metric,Value
-mean batching rate (%),81.27
-p90 batching rate (%),186.65
-mean improvement (%),35.56
-p90 improvement (%),50.65
-mean execution time (s),749.78
-p90 execution time (s),1806.52
+mean batching rate (%),119.58
+p90 batching rate (%),175.7
+mean improvement (%),19.98
+p90 improvement (%),46.74
+mean execution time (s),304.81
+p90 execution time (s),1804.06

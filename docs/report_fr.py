@@ -360,20 +360,24 @@ toy & 44\% & 65\% & 57\% \\
 \end{tabular}
 \end{center}
 
-Les distributions de l'amélioration relative par rapport à la solution de référence sont présentées dans les box-plots suivants \ref{fig:boxplot_improvement_warehouse} et \ref{fig:boxplot_improvement_method}.
-    ... TODO img boxplot improvement (x2)...
+En considérant une expérience qui consiste à résoudre toutes les instances disponibles, la distribution de l'amélioration relative par rapport à la solution de référence est présentée dans les box-plots suivants.
+Chaque solution d'instance correspond à un point de données dans les box-plots. Ils sont regroupés soit par entrepôt \ref{fig:boxplot_improvement_warehouse} ou par méthode \ref{fig:boxplot_improvement_method}.
 
-Les résultats montrent que la plupart des améliorations significatives sont observées dans les instances de l'entrepôt `A`, avec un N\% d'amélioration.
-Cependant, la plus grande amélioration (valeur aberrante) est observée dans l'entrepôt `C`, atteignant un N\% d'amélioration.
-Les instances des entrepôts `B` et `D` ont une amélioration similaire, qui varie de N\% à N\%.
+Les premiers box-plots \ref{} comparent la distribution de l'amélioration (%) des méthodes séquentielle et jointe.
+Bien que l'amélioration médiane de la méthode jointe soit plus élevée que la méthode séquentielle, les plus grandes améliorations sont obtenues par la méthode séquentielle.
+La méthode jointe montre une plage interquartile plus étroite, suggérant une performance plus cohérente à travers les instances.
+Cependant, la méthode séquentielle est capable de résoudre certaines instances avec une amélioration plus élevée.
+  ..img...
 
-Globalement, l'amélioration moyenne de toutes les méthodes est de N\%, et de N\% dans le percentile 90.
-Nous mesurons également le pourcentage de regroupement, qui est la quantité de commandes dans le batch divisée par la quantité totale de commandes.
-    ...explicar todas las metricas ...
-    ... TODO table metrics ...
+De même, le box-plot \ref{} montre la distribution de l'amélioration (%) par entrepôt.
+L'entrepôt \texttt{C} montre les plus grandes améliorations (88\% au maximum), suivi par l'entrepôt \texttt{A} (45\%).
+Cependant, l'entrepôt \texttt{A} présente une amélioration médiane plus élevée par rapport aux autres entrepôts, avec presque 40\% d'amélioration.
+  ...img...
 
-En ce qui concerne le temps de calcul, l'approche séquentielle est considérablement plus rapide que l'approche jointe, comme le montre le box-plot suivant \ref{fig:boxplot_time_warehouse_method}.
-    ... TODO img boxplot time (x1)...
+Les métriques globales obtenues à partir de toutes les méthodes et instances sont résumées dans le tableau suivant \ref{tab:metrics}.
+L'amélioration globale moyenne est de 20\% en moyenne, et le 90ème percentile d'amélioration est de 47\%.
+Le temps d'exécution moyen est de 305 secondes, et le 90ème percentile du temps d'exécution est de 1804 secondes, ce qui est un temps raisonnable pour les applications hors ligne.
+Ces résultats suggèrent que la méthode proposée fournit un bon compromis entre la qualité de la solution et le temps de calcul, et elle est adaptée pour les grandes instances du problème.
 
 Plusieurs instances ont été résolues uniquement par l'approche séquentielle, car l'approche jointe était trop lente et a atteint la limite de temps.
 Des exemples de trajets sont présentés dans les figures suivantes \ref{fig:routes_warehouse}.

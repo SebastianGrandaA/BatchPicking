@@ -270,17 +270,21 @@ toy & 44\% & 65\% & 57\% \\
 \end{tabular}
 \end{center}
 
-The distribution of the relative improvement against the baseline solution is shown in the following box-plots \ref{fig:boxplot_improvement_warehouse} and \ref{fig:boxplot_improvement_method}.
-  ... TODO img boxplot improvement (x2)...
+The distribution of the relative improvement against the baseline solution is shown in the following box-plots.
+Each instance solution correspond to a data point in the boxplots. They are grouped either by warehouse \ref{fig:boxplot_improvement_warehouse} or by method \ref{fig:boxplot_improvement_method}.
 
-The most significant improvement are the instances of warehouse `A`, with an ...
+The boxplot \ref{} compares the distribution of the improvement (%) of the sequential and joint methods.
+Although the median improvement of the joint method is higher than the sequential method, the highest improvements are achieved by the sequential method.
+The joint method shows a narrower interquartile range, suggesting a more consistent performance across the instances.
+However, the sequential method is able to solve some instances with a higher improvement.
 
-Overall, global the improvement percentage of all the methods is ...
-We also measure the batching percentage, which is the quantity of orders in the batch divided by the total quantity of orders.
-  ...explicar todas las metricas ...
-  ... TODO table metrics ...
+Similarly, the boxplot \ref{} compares the distribution of the improvement (%) by warehouse.
+The warehouse C shows the highest improvements (88\%), followed by the warehouse A (45\%).
+However, the warehouse A presents a higher median improvement over other warehouses, almost 40\% of improvement.
 
-Finally, the distribution of the computational time by method is shown in the following box-plot \ref{fig:boxplot_time_warehouse_method}.
+The overall metrics obtained from all methods and instances are summarized in the following table \ref{tab:metrics}. 
+The mean global improvement is 20\% in average, and the 90th percentile improvement is 47\%.
+The mean execution time is 305 seconds, and the 90th percentile execution time is 1804 seconds, which are reasonable times for offline applications.
 
 Examples of the routes are shown in the following figures \ref{fig:routes_warehouse}.
   ... TODO nice route examples ...

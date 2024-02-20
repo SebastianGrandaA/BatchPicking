@@ -12,6 +12,7 @@ INVALID_INSTANCES = [
     "warehouse_D/data_2023-01-31_20",
 ]
 
+
 class Benchmark(IO):
     instance_names: list[str]
     method: str
@@ -27,7 +28,7 @@ class Benchmark(IO):
         for instance_name in self.instance_names:
             if instance_name in INVALID_INSTANCES:
                 continue
-            
+
             BatchPicking.optimize(self.method, instance_name, self.timeout)
 
     def preprocess(self) -> None:
