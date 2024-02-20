@@ -13,4 +13,5 @@ TODOs.py
 outputs/-/*
 resources/*
 data/*
-*.png
+batch*.png
+warehouse*.png

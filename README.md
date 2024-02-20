@@ -93,8 +93,6 @@ $ make experiment
 To run all the instances, use `make experiment-all` instead.
 Finally, the `make describe` command will provide a summary of the results of the experiments.
 
----
-
 ## Contribute
 
 Before pushing a commit, ensure to format the code and export the dependencies:
