@@ -25,7 +25,8 @@ optimize-sequential:
 	python src -u optimize -m sequential -n examples/toy_instance -t 1800
 
 new-exp:
-	python src -u experiment -m sequential -ns warehouse_D/data_2023-01-30_00,warehouse_D/data_2023-01-30_04,warehouse_D/data_2023-01-30_08,warehouse_D/data_2023-01-30_12,warehouse_D/data_2023-01-30_16,warehouse_D/data_2023-01-30_20,warehouse_D/data_2023-01-31_00,warehouse_D/data_2023-01-31_04,warehouse_D/data_2023-01-31_08,warehouse_D/data_2023-01-31_12,warehouse_D/data_2023-01-31_20 -t 1800 -l INFO
+	python src -u experiment -m sequential -ns warehouse_D/data_2023-01-30_00,warehouse_D/data_2023-01-30_04,warehouse_D/data_2023-01-30_08,warehouse_D/data_2023-01-30_12,warehouse_D/data_2023-01-30_16,warehouse_D/data_2023-01-30_20,warehouse_D/data_2023-01-31_00,warehouse_D/data_2023-01-31_04 -t 1800 -l INFO
+	python src -u experiment -m sequential -ns warehouse_D/data_2023-01-31_08,warehouse_D/data_2023-01-31_12,warehouse_D/data_2023-01-31_20 -t 1800 -l INFO
 	python src -u experiment -m joint -ns warehouse_D/data_2023-01-30_00,warehouse_D/data_2023-01-30_04,warehouse_D/data_2023-01-30_08,warehouse_D/data_2023-01-30_12,warehouse_D/data_2023-01-30_16,warehouse_D/data_2023-01-30_20,warehouse_D/data_2023-01-31_00,warehouse_D/data_2023-01-31_04,warehouse_D/data_2023-01-31_08,warehouse_D/data_2023-01-31_12,warehouse_D/data_2023-01-31_20 -t 1800 -l INFO
 	
 experiment:

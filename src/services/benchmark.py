@@ -11,6 +11,18 @@ from services.io import IO
 
 class Benchmark(IO):
     """
+    TODO Analisis de resultados
+        Calculate batching %: quantity of orders in the batch / total quantity of orders
+
+        The algorithm best performs when there are several orders to batch (with relatively small quantity of items per order), because there is more opportunity to batch orders.
+            Instancias A y D
+        However, for instances with few orders and a large quantity of items per order, the solution mainly relies in the routing problem (because the partitions are likely to be single order), and thus reach a timeout from the solver.
+            Instancias B y C
+
+        Show heatmap
+
+        Calcular estas cosas con tabla de bechmark (consolidar con resultados de otra mac y pasados buenos / completos)
+
     ## Numerical analysis
         Benchmark: export table with `feasible, base_cost, objective_cost, improvement` columns for each instance
             (base) SG @ poip-2024 $ python solution_checker.py -p data/A_data_2023-05-27 -s data/A_data_2023-05-27/solution.txt

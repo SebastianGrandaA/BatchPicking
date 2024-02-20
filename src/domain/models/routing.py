@@ -12,6 +12,7 @@ class Routing(Problem):
 
     graph: dict[int, Item] = {}
     node_to_order: dict[int, int] = {}
+    is_warehouse_complete: bool = True
 
     @property
     def nodes(self) -> list[Item]:
@@ -81,8 +82,13 @@ class Routing(Problem):
         dummy_idx = self.artificial_idx
 
         for order in self.warehouse.orders:
-            dummy = Item(id=dummy_idx, is_dummy=True)
-            vertices = order.pickups + [dummy]
+            vertices = order.pickups
+
+            if self.is_warehouse_complete:
+                dummy = Item(id=dummy_idx, is_dummy=True)
+                vertices += [dummy]
+                dummy_idx += 1
+
             nodes.extend(vertices)
 
             for i in vertices:
@@ -92,8 +98,6 @@ class Routing(Problem):
                     )
 
                 self.node_to_order[i.id] = order.id
-
-            dummy_idx += 1
 
         nodes.append(depots[1])
 

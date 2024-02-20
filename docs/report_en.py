@@ -1,5 +1,4 @@
 """
------ ENGLISH -----
 \title{The Batch-Picking problem}
 
 \section{Abstract}
@@ -15,27 +14,26 @@ The Batch-Picking problem, formally known in the literature as the Joint Order B
 As the name suggests, the problem combines two optimization problems: the order batching problem and the picker routing problem.
 The order batching problem consists of grouping subsets of orders to pick their items together, if that leads to a reduced total distance traveled.
 On the other hand, the picker routing problem consists of determining the sequence of storage locations to pick all orders in a batch.
+This problem has been studied in the literature under both the joint and the sequential approaches.
 
-This problem has been studied in the literature under different approaches.
-A Clustered Vehicle Routing Problem (CluVRP) has been proposed by \cite{cvrp_jopbrp} to model the joint problem. In this problem, the customers are grouped into clusters, and the vehicles can enter and leave the clusters multiple times.
-In our case, the customers are the items to be picked, and the clusters represent the order integrality condition to pick all items of an order in the same tour.
-An adapted formulation for this problem as a CluVRP is described in the Annexes section.
+A Clustered Vehicle Routing Problem (CluVRP) has been proposed by \cite{cvrp_jopbrp} to model the joint problem.
+In this problem, the customers are grouped into clusters, which correspond to the order integrality condition to pick all items of an order in the same tour.
+Their model allows the vehicles to enter and leave the clusters multiple times using soft cluster constraints.
+Our case can be adapted to this model by considering the customers as the items to be picked. The CluVRP formulation is described in the Annexes section.
 
-This problem has also been addressed sequentially, where the order batching problem is solved first, and then the routes are obtained for each batch.
-The advantage of this approach is the evident reduction in the complexity of the problem, as the routing problem can be solved as a Traveling Salesman Problem (TSP) for each batch.
+This problem has also been addressed sequentially, where the order batching problem is solved first, and then the routes are obtained.
+The advantage of this approach is the evident reduction in the complexity of the problem, as the routing problem can be solved for each batch independently.
 The drawback is the lack of coordination between the two problems, which can lead to suboptimal solutions because the batching decisions are made without considering the routing problem.    
 Related ideas can be found at \cite{survey_order_batching}, where the authors discuss the batch-first route-second approaches against the joint approach, and the benefits of solving the problems simultaneously.
-These approaches usually require a computationally expensive calculation of the distance metric, such as calculating the shortest path between each combination of orders for a set-partitioning problem (i.e. the best sequence to pick all items in a batch).
-We consider a relevant research challenge to find a metric that best approximates the shortest sequence of orders to pick in a batch, without the need for an exhaustive search.
+However, these approaches usually require a computationally expensive calculation of the distance metric, such as calculating the shortest path between each combination of orders for a set-partitioning problem (i.e. the best sequence to pick all items in a batch).
+Therefore, we consider a relevant research challenge to find a metric that best approximates the shortest sequence of orders to pick in a batch, without the need for an exhaustive search.
 
-In this work, we study the Joint Order Batching and Picker Routing Problem (JOBPRP) as a variant of the Pickup and Delivery Problem (PDP), and we propose a batch-first route-second heuristic to solve large instances of the problem.
-The proposed heuristic is based on the Hausdorff distance, which is a measure the closeness of two sets of points, and it is used to determine the best way to group orders into batches.
-The initial solution is obtained by solving the p-median problem, and the best sequence of items to pick in a batch is determined by solving a set of independent TSPs.
-Once the initial solution is obtained, a local-search algorithm is applied to improve the solution by swapping orders between batches and re-optimizing the routes.
+In this work, we study the Batch-Picking problem as a variant of the Pickup and Delivery Problem (PDP), and we propose a batch-first route-second heuristic to solve large instances of the problem.
+The proposed heuristic is based on the Hausdorff distance, which is a measure the closeness of two sets of items (i.e. two orders), and it is used to determine the best way to group orders into batches.
+The initial solution is obtained by solving the p-median problem, and the sequence of items to pick in a batch is determined by solving a set of independent TSPs.
+Once the initial solution is obtained, a local-search algorithm is applied to improve the solution by applying a set of move operators and re-optimizing the routes.
 
 The remainder of this report is organized as follows. In the next section, we describe and formulate the problem. Then, we present the proposed heuristic, the implementation details and the numerical experiments. Finally, we provide a discussion of the results and the conclusions of this work.
-
----
 
 \section{Problem statement}
 
@@ -57,7 +55,7 @@ The demand and the volume of the item and depot nodes are 0 \(p_i = v_i = 0\) fo
 Furthermore, the physical position in which each node is located is represented by \(pos(i) \forall i \in V\). It is possible that multiple nodes share the same position.
 
 The arc set \(A = \{(i, j) \in V \times V : i \neq j\}\) are all feasible paths between the nodes, each with a distance \(d_{ij} \geq 0\) obtained from the positions of nodes \(pos(i)\) and \(pos(j)\) in the warehouse.
-The distance to or from the depot nodes is 0 \(d_{ij} = d_{ji} = 0 \forall i \in D, j \in V\). The distance matrix is asymmetric and satisfies the triangle inequality.
+The distance to or from the dummy nodes is 0 \(d_{ij} = d_{ji} = 0 \forall i \in V, j \in J\). The distance matrix is asymmetric and satisfies the triangle inequality.
 
 The nodes are visited by a set of identical pickers \(k \in K\), each with an unitary and volume capacity.
 The unitary capacity constraint refers to the maximum number of orders that a picker can transport in a route, whereas the volume capacity constraint, to the maximum volume.
@@ -66,16 +64,28 @@ We assume that there are enough pickers to cover all the orders in the warehouse
 
 \(\underline{B} = \max\left(\frac{\sum_{i \in I} v_i}{C_{volume}}, \frac{|O|}{C_{unit}}\right) \times (1 + \alpha)\) \label{eq:min_batches}
 
+Let \(d(i) \in J\) be the artificial node, or delivery point, of the item node \(i\).
 The artificial nodes act as consolidation points for each order, ensuring that all the items of an order are picked-up in the same route.
 This is achieved by forcing the pickers to visit the item nodes and delivering them to the artificial nodes.
-Let \(d(i) \in J\) be the delivery - artificial - node of the item node \(i\).
 
 We present a three-index commodity-flow formulation that involves two types of variables: selection and flow variables.
 Let \(x_{ijk} \in \{0, 1\}\) be the binary decision variables indicating whether the arc \((i, j) \in A\) is selected by the picker \(k \in K\).
-The commodity-flow variables \(l_{ik} \geq 0\) indicate the cumulative load of picker \(k \in K\) after visiting node \(i \in V\). This load represents the number of orders picked up (i.e. quantity artificial nodes).
+The commodity-flow variables \(u_{ik} \geq 0\) indicate the cumulative load of picker \(k \in K\) after visiting node \(i \in V\). This load represents the number of orders picked up (i.e. quantity artificial nodes).
 The model is formulated as follows:
 
 \min \sum_{k \in K} \sum_{(i, j) \in A} d_{ij} x_{ijk} \label{eq:objective_vrp}
+
+
+The objective function \eqref{eq:objective_vrp} minimizes the total distance traveled by the pickers.
+Constraints \eqref{eq:service_constraints_vrp} impose that each pickup (item) node is visited exactly once by a 
+
+
+
+
+
+
+
+
 \sum_{k \in K} \sum_{j \in V \setminus \{0\}} x_{ijk} = 1, \quad \forall i \in I, \label{eq:service_constraints_vrp}
 \sum_{j \in V} x_{ijk} = \sum_{j \in V} x_{j,d(i),k}, \quad \forall k \in K, \forall i \in I, \label{eq:pickup_delivery}
 
@@ -266,6 +276,7 @@ survey_order_batching
 
 survey_static_pdp
   [1] Berbeglia, G., Cordeau, J. F., Gribkovskaia, I., & Laporte, G. (2007). Static pickup and delivery problems: a classification scheme and survey. Top, 15, 1-31.
+  
   [2] Desaulniers, G., Desrosiers, J., Erdmann, A., Solomon, M. M., & Soumis, F. (2002). VRP with Pickup and Delivery. The vehicle routing problem, 9, 225-242.
   [3] Battarra, M., Cordeau, J. F., & Iori, M. (2014). Chapter 6: pickup-and-delivery problems for goods transportation. In Vehicle Routing: Problems, Methods, and Applications, Second Edition (pp. 161-191). Society for Industrial and Applied Mathematics.
   [4] Parragh, S. N., Doerner, K. F., & Hartl, R. F. (2008). A survey on pickup and delivery problems: Part I: Transportation between customers and depot. Journal für Betriebswirtschaft, 58, 21-51.
@@ -275,7 +286,45 @@ book_location_science
 
 ---
 
------ FRENCH -----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ----------

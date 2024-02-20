@@ -18,7 +18,6 @@ class VRP(Routing):
     routing: Any = None
     parameters: Any = None
     callbacks: Callbacks = Callbacks()
-    is_warehouse_complete: bool = True
 
     @property
     def demands(self) -> list[int]:
@@ -424,10 +423,6 @@ class VRPFormulation(Routing):
 
     def minimize_total_distance(self, model: pyo.ConcreteModel) -> float:
         """Return the total distance traveled by the pickers."""
-        # TODO probar quitando los dummy
-        # warning(f'x: {[i for i in model.x.keys()]}')
-        # warning(f'x: {[model.x[i, j, k] for (i, n_i) in self.node_items for (j, n_j) in self.node_items for k in range(self.nb_vehicles)]}')
-        # warning(f'distances {[self.warehouse.distance(node_i, node_j) for (i, node_i) in self.node_items for (j, node_j) in self.node_items]}')
         return sum(
             self.warehouse.distance(node_i, node_j) * model.x[i, j, k]
             if (i != j and not node_i.is_dummy and not node_j.is_dummy)
@@ -524,14 +519,6 @@ class VRPFormulation(Routing):
         )
 
         # return sum(model.x[i, j, k] for i in self.graph.keys() if i != self.end_node_idx) == sum(model.x[j, i, k] for i in self.graph.keys() if i != self.start_node_idx)
-
-    # def delivery_end_route_constraints(self, model: pyo.ConcreteModel, k: int) -> float:
-    # TODO este es el de arriba
-    # """
-    # Return the delivery end route constraints for the pick-up nodes.
-
-    # \sum_{i \in J \cup \{0\}} x_{ink} = 1, \quad \forall k \in K, \label{eq:delivery_end_route}
-    # """
 
     # return sum(model.x[i, self.end_node_idx, k] for i, item in self.node_items if (item.is_dummy or i == self.start_node_idx)) == 1
     # TODO probar item.is_pickup instead
