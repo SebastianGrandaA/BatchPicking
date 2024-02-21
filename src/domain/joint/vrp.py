@@ -356,10 +356,10 @@ class VRP(Routing):
 
     def route_batch(self, batch: Batch) -> Batch:
         """Route a single batch."""
+        assert not self.is_warehouse_complete, "Expected a single batch"
         self.warehouse.orders = batch.orders
 
         routes = self.route()
-        assert len(routes) == 1, "Invalid number of routes"
 
         return routes[0]
 
