@@ -50,6 +50,8 @@ $ make experiment
 To run all the instances, use `make experiment-all` instead.
 Finally, the `make describe` command will provide a summary of the results of the experiments.
 
+**IMPORTANT**. In case the optimize process throws a `segmentation fault`, increase the timeout (ej: `-t 1000`).
+
 ## Implementation details
 
 The implementation of this project focuses on intuitive and modular design, rather than performance, as it is a proof of concept.
