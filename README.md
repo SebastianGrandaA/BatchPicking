@@ -5,7 +5,7 @@ The items are partitioned into a set of orders, in such way that all items of an
 The objective is to minimize the total distance traveled by the pickers to satisfy all the orders in the warehouse.
 
 This project implements two main optimization approaches: the **sequential** and the **joint** approaches.
-A detailed description of the problem, the implemented methods, and the results can be found in the [report](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9). A rendered version is available at `docs/` folder.
+A detailed description of the problem, the implemented methods, and the results can be found in the [report](https://www.overleaf.com/read/xfgcnzwccnqj#8fe7b9). A rendered version and the slides are available at `docs/` folder.
 
 ## Installation and usage
 
